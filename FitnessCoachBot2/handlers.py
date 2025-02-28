@@ -717,8 +717,8 @@ class BotHandlers:
             # Get detailed statistics
             stats = self.db.get_detailed_progress_stats(user_id)
             streaks = stats['streaks']
-            current_streak = streaks['current']
-            longest_streak = streaks['longest']
+            current_streak = streaks['current_streak']  # Fixed key name
+            longest_streak = streaks['longest_streak']  # Fixed key name
 
             # Format main dashboard message
             message = "🏋️‍♂️ *Фитнес Дашборд*\n\n"
@@ -787,9 +787,18 @@ class BotHandlers:
                 message = "*📅 Месячный отчет*\n\n"
                 for month, data in monthly_stats.items():
                     message += f"*{month}*\n"
-                    message += f"•Тренировок: {data['workouts']}\n"
-                    message += f"• Завершено: {data['completed']}\n"
+                    message += f"•Тренировок: {data['workouts']}\nmessage += f"• Завершено: {data['completed']}\n"
                     message += f"• Эффективность: {data['completion_rate']}%\n\n"
+
+                # Add back button
+                keyboard = [[InlineKeyboardButton("🔙 Назад к дашборду", callback_data="back_to_dashboard")]]
+                reply_markup = InlineKeyboardMarkup(keyboard)
+
+                await query.message.edit_text(
+                    message,
+                    reply_markup=reply_markup,
+                    parse_mode='Markdown'
+                )
 
             elif query.data == "achievements":
                 message = "*🏆 Ваши достижения*\n\n"
@@ -801,7 +810,7 @@ class BotHandlers:
                     achievements.append("🎯 Первая тренировка")
                 if stats['total_workouts'] >= 10:
                     achievements.append("💪 Постоянство (10 тренировок)")
-                if stats['streaks']['longest'] >= 7:
+                if stats['streaks']['longest_streak'] >= 7:  # Fixed key name
                     achievements.append("🔥 Недельная серия")
                 if stats['completion_rate'] >= 80:
                     achievements.append("⭐ Высокая эффективность (>80%)")
@@ -810,6 +819,16 @@ class BotHandlers:
                     message += "\n".join(achievements)
                 else:
                     message += "Продолжайте тренироваться, чтобы получить достижения!"
+
+                # Add back button
+                keyboard = [[InlineKeyboardButton("🔙 Назад к дашборду", callback_data="back_to_dashboard")]]
+                reply_markup = InlineKeyboardMarkup(keyboard)
+
+                await query.message.edit_text(
+                    message,
+                    reply_markup=reply_markup,
+                    parse_mode='Markdown'
+                )
 
             elif query.data == "workout_history":
                 workouts = self.db.get_user_progress(user_id)

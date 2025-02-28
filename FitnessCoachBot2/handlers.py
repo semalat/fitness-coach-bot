@@ -6,7 +6,7 @@ from telegram.ext import (
 )
 import logging
 import messages
-from datetime import datetime
+from datetime import datetime, timedelta
 from config import AGE, HEIGHT, WEIGHT, SEX, GOALS, FITNESS_LEVEL, EQUIPMENT
 from keyboards import (
     get_sex_keyboard, get_goals_keyboard, get_fitness_level_keyboard,
@@ -714,39 +714,44 @@ class BotHandlers:
         logger.info(f"Showing progress for user {user_id}")
 
         try:
-            # Get streak information
-            streaks = self.db.get_workout_streak(user_id)
-            current_streak = streaks['current_streak']
-            longest_streak = streaks['longest_streak']
-            logger.info(f"Retrieved streaks - Current: {current_streak}, Longest: {longest_streak}")
+            # Get detailed progress statistics
+            stats = self.db.get_detailed_progress_stats(user_id)
+            logger.info(f"Retrieved stats for user {user_id}: {stats}")
 
-            # Get recent workout stats
-            stats = self.db.get_workout_intensity_stats(user_id, days=30)
-            recent_workouts = self.db.get_user_progress(user_id)[-5:]  # Last 5 workouts
-            logger.info(f"Retrieved {len(recent_workouts)} recent workouts")
+            # Format weekly stats
+            weekly_stats = ""
+            for week, data in stats.get('weekly_stats', {}).items():
+                weekly_stats += f"\n• {week}:"
+                weekly_stats += f"\n  - Тренировок: {data['workouts']}"
+                weekly_stats += f"\n  - Завершено: {data['completed']}"
+                weekly_stats += f"\n  - Выполнение: {data['completion_rate']}%"
 
-            # Create progress message
-            message = "📊 Ваша статистика тренировок:\n\n"
-            message += f"🔥 Текущая серия: {current_streak} дней\n"
-            message += f"🏆 Лучшая серия: {longest_streak} дней\n\n"
+            # Format monthly stats
+            monthly_stats = ""
+            for month, data in stats.get('monthly_stats', {}).items():
+                monthly_stats += f"\n• {month}:"
+                monthly_stats += f"\n  - Тренировок: {data['workouts']}"
+                monthly_stats += f"\n  - Завершено: {data['completed']}"
+                monthly_stats += f"\n  - Выполнение: {data['completion_rate']}%"
 
-            if recent_workouts:
-                message += "🎯 Последние тренировки:\n"
-                for workout in recent_workouts:
-                    completion = (workout['exercises_completed'] / workout['total_exercises']) * 100
-                    message += f"📅 {workout['date']}: {completion:.1f}% выполнено\n"
-            else:
-                message += "❌ Пока нет завершенных тренировок\n"
+            streaks = stats.get('streaks', {})
+            # Format message with all statistics
+            message = messages.PROGRESS_MESSAGE.format(
+                total_workouts=stats.get('total_workouts', 0),
+                completed_workouts=stats.get('completed_workouts', 0),
+                completion_rate=stats.get('completion_rate', 0),
+                current_streak=streaks.get('current_streak', 0),
+                longest_streak=streaks.get('longest_streak', 0),
+                weekly_stats=weekly_stats if weekly_stats else "Нет данных",
+                monthly_stats=monthly_stats if monthly_stats else "Нет данных"
+            )
 
-            # Create completion rate graph
-            if stats:
-                message += "\n📈 Статистика за последние 30 дней:\n"
-                for stat in stats[-5:]:  # Show last 5 days
-                    completion_rate = stat['completion_rate']
-                    message += f"📅 {stat['date']}: {completion_rate:.1f}%\n"
-
+            # Send progress message
             await update.message.reply_text(message)
             logger.info("Progress message sent successfully")
+
+            # Show calendar after progress
+            await self.show_calendar(update, context)
 
         except Exception as e:
             logger.error(f"Error showing progress: {str(e)}", exc_info=True)
@@ -754,81 +759,77 @@ class BotHandlers:
 
     async def show_calendar(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle the /calendar command"""
-        user_id = update.effective_user.id
-        logger.info(f"Showing calendar for user {user_id}")
+        try:
+            user_id = update.effective_user.id
+            now = datetime.now()
 
-        # Get current year and month
-        current_date = datetime.now()
-        year = current_date.year
-        month = current_date.month
+            # Get workouts for current month
+            start_date = now.replace(day=1).date()
+            end_date = now.date()
 
-        # Get all workout dates for the user
-        workouts = self.db.get_user_progress(user_id)
-        workout_dates = {workout['date'] for workout in workouts}
+            workouts = self.db.get_workouts_by_date(user_id, start_date, end_date)
+            logger.info(f"Retrieved {len(workouts) if workouts else 0} workouts for calendar")
 
-        # Generate calendar keyboard
-        keyboard = get_calendar_keyboard(year, month, workout_dates)
+            # Generate calendar keyboard
+            keyboard = get_calendar_keyboard(now.year, now.month, workouts)
 
-        await update.message.reply_text(
-            messages.CALENDAR_HELP,
-            reply_markup=keyboard
-        )
-        logger.info("Calendar message sent successfully")
+            # Send calendar message
+            await update.message.reply_text(
+                messages.CALENDAR_HELP,
+                reply_markup=keyboard
+            )
+            logger.info("Calendar displayed successfully")
+        except Exception as e:
+            logger.error(f"Error showing calendar: {str(e)}", exc_info=True)
+            await update.message.reply_text("Произошла ошибка при отображении календаря. Попробуйте позже.")
 
     async def handle_calendar_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle calendar-related callbacks"""
+        """Handle calendar navigation and date selection"""
         query = update.callback_query
         await query.answer()
 
-        # Parse callback data
-        if query.data.startswith("calendar_"):
-            # Navigation callback
-            _, year, month = query.data.split("_")
-            year, month = int(year), int(month)
+        try:
+            # Extract data from callback
+            data = query.data.split('_')
 
-            # Get user's workout dates for thismonth
-            user_id = update.effective_user.id
-            workout_dates = self.db.get_workout_dates(user_id, year, month)
+            if data[0] == 'calendar':
+                # Handle month navigation
+                year = int(data[1])
+                month = int(data[2])
 
-            # Generate new calendar keyboard
-            reply_markup = get_calendar_keyboard(year, month, workout_dates)
-            await query.message.edit_reply_markup(reply_markup=reply_markup)
+                # Get workouts for the selected month
+                start_date = datetime(year, month, 1).date()
+                end_date = (datetime(year, month + 1, 1) if month < 12 else datetime(year + 1, 1, 1)).date() - timedelta(days=1)
 
-        elif query.data.startswith("date_"):
-            # Date selection callback
-            date_str = query.data.split("_")[1]
+                workouts = self.db.get_workouts_by_date(query.from_user.id, start_date, end_date)
+                logger.info(f"Navigating calendar to {year}-{month}, found {len(workouts) if workouts else 0} workouts")
 
-            try:
-                selected_date = datetime.strptime(date_str, '%Y-%m-%d')
-                # Get workout data for the selected date
-                user_id = update.effective_user.id
-                workout_data = self.db.get_workout_by_date(user_id, date_str)
+                # Update calendar view
+                calendar_keyboard = get_calendar_keyboard(year, month, workouts)
+                await query.message.edit_reply_markup(reply_markup=calendar_keyboard)
 
-                if workout_data:
-                    # Format workout details
-                    message = f"📅 Тренировка {selected_date.strftime('%d.%m.%Y')}:\n\n"
-                    message += f"✅ Выполнено упражнений: {workout_data.get('exercises_completed', 0)}\n"
-                    message += f"💪 Всего упражнений: {workout_data.get('total_exercises', 0)}\n"
+            elif data[0] == 'date':
+                # Handle date selection
+                selected_date = datetime.strptime(data[1], '%Y-%m-%d').date()
+                workouts = self.db.get_workouts_by_date(query.from_user.id, selected_date, selected_date)
 
-                    if workout_data.get('feedback'):
-                        message += "\n📝 Ваш отзыв:\n"
-                        feedback = workout_data['feedback']
-                        if 'emotional_state' in feedback:
-                            message += "😊 " if feedback['emotional_state'] == 'fun' else "😐 "
-                        if 'physical_state' in feedback:
-                            message += {
-                                'too_easy': "Было легко\n",
-                                'ok': "Нормальная нагрузка\n",
-                                'tired': "Было тяжело\n"
-                            }.get(feedback['physical_state'], "")
+                if workouts:
+                    # Show workouts for selected date
+                    workout_details = f"📅 Тренировки {selected_date.strftime('%d.%m.%Y')}:\n\n"
+                    for workout in workouts:
+                        status = "✅" if workout.get('workout_completed') else "⭕"
+                        completion = (workout['exercises_completed'] / workout['total_exercises'] * 100)
+                        workout_details += (
+                            f"{status} Упражнений: {workout['exercises_completed']}/{workout['total_exercises']}\n"
+                            f"Завершенность: {completion:.1f}%\n\n"
+                        )
+                    await query.message.reply_text(workout_details)
                 else:
-                    message = f"На {selected_date.strftime('%d.%m.%Y')} тренировок не найдено."
+                    await query.message.reply_text(f"На {selected_date.strftime('%d.%m.%Y')} тренировок не найдено.")
 
-                await query.message.reply_text(message)
-
-            except ValueError as e:
-                logger.error(f"Error parsing date: {e}")
-                await query.message.reply_text("Произошла ошибка при обработке даты.")
+        except Exception as e:
+            logger.error(f"Error handling calendar callback: {str(e)}", exc_info=True)
+            await query.message.reply_text("Произошла ошибка. Попробуйте еще раз.")
 
     async def set_reminder(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle the /reminder command"""

@@ -36,7 +36,7 @@ class BotHandlers:
             stats = self.db.get_detailed_progress_stats(user_id)
             logger.info(f"Retrieved initial stats for dashboard: {stats}")
 
-            streaks = stats['streaks']
+            streaks = stats.get('streaks', {})
             current_streak = streaks.get('current_streak', 0)
             longest_streak = streaks.get('longest_streak', 0)
 
@@ -71,15 +71,23 @@ class BotHandlers:
             reply_markup = InlineKeyboardMarkup(keyboard)
 
             logger.info("Sending main dashboard view")
-            if isinstance(message_obj, Message):
-                await message_obj.reply_text(
-                    message,
-                    reply_markup=reply_markup,
-                    parse_mode='Markdown'
-                )
-            else:
-                # Handle callback query updates
-                await message_obj.edit_text(
+            try:
+                if isinstance(message_obj, Message):
+                    await message_obj.reply_text(
+                        message,
+                        reply_markup=reply_markup,
+                        parse_mode='Markdown'
+                    )
+                else:
+                    await message_obj.edit_text(
+                        message,
+                        reply_markup=reply_markup,
+                        parse_mode='Markdown'
+                    )
+            except Exception as e:
+                logger.error(f"Error sending message: {str(e)}", exc_info=True)
+                # Try to send as a new message if edit fails
+                await update.effective_chat.send_message(
                     message,
                     reply_markup=reply_markup,
                     parse_mode='Markdown'
@@ -88,10 +96,14 @@ class BotHandlers:
         except Exception as e:
             logger.error(f"Error showing progress dashboard: {str(e)}", exc_info=True)
             error_message = "Произошла ошибка при загрузке статистики. Попробуйте позже."
-            if isinstance(message_obj, Message):
-                await message_obj.reply_text(error_message)
-            else:
-                await update.callback_query.message.reply_text(error_message)
+            try:
+                if isinstance(message_obj, Message):
+                    await message_obj.reply_text(error_message)
+                else:
+                    await update.callback_query.message.reply_text(error_message)
+            except Exception as send_error:
+                logger.error(f"Error sending error message: {str(send_error)}", exc_info=True)
+                await update.effective_chat.send_message(error_message)
 
     async def start_gym_workout(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Start a gym-specific workout session"""
@@ -790,7 +802,7 @@ class BotHandlers:
             if query.data == "back_to_dashboard":
                 logger.info(f"User {user_id} returning to main dashboard")
                 await self.show_progress(update, context)
-return
+                return
 
             # Get stats once at the beginning
             logger.info(f"Retrieving statistics for user {user_id}")
@@ -826,13 +838,13 @@ return
 
                 # Achievement criteria
                 achievements = []
-                if stats['total_workouts'] >= 1:
+                if stats.get('total_workouts', 0) > 0:
                     achievements.append("🎯 Первая тренировка")
-                if stats['total_workouts'] >= 10:
+                if stats.get('total_workouts', 0) >= 10:
                     achievements.append("💪 Постоянство (10 тренировок)")
-                if stats['streaks']['longest_streak'] >= 7:
+                if stats.get('streaks', {}).get('longest_streak', 0) >= 7:
                     achievements.append("🔥 Недельная серия")
-                if stats['completion_rate'] >= 80:
+                if stats.get('completion_rate', 0) >= 80:
                     achievements.append("⭐ Высокая эффективность (>80%)")
 
                 if achievements:
@@ -847,7 +859,7 @@ return
                 message = "*📋 История тренировок*\n\n"
 
                 # Show last 5 workouts
-                recent_workouts = workouts[-5:]
+                recent_workouts = workouts[-5:] if workouts else []
                 logger.info(f"Found {len(recent_workouts)} recent workouts")
 
                 for workout in recent_workouts:
@@ -873,9 +885,9 @@ return
                         completion = stat['completion_rate']
                         intensity_bar = "▓" * (int(completion/10)) + "░" * (10 - int(completion/10))
                         message += f"📅 {date}\n"
-                        message += f"[{intensity_bar}] {int(completion)}%\n\n"
+                        message += f"{intensity_bar} {int(completion)}%\n\n"
                 else:
-                    message += "Пока недостаточно данных для анализа."
+                    message += "Пока нет данных для анализа интенсивности."
 
             # Add back button for all views
             keyboard = [[InlineKeyboardButton("🔙 Назад к дашборду", callback_data="back_to_dashboard")]]

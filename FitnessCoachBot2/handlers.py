@@ -750,9 +750,6 @@ class BotHandlers:
             await update.message.reply_text(message)
             logger.info("Progress message sent successfully")
 
-            # Show calendar after progress
-            await self.show_calendar(update, context)
-
         except Exception as e:
             logger.error(f"Error showing progress: {str(e)}", exc_info=True)
             await update.message.reply_text("Произошла ошибка при получении статистики. Попробуйте позже.")
@@ -761,7 +758,10 @@ class BotHandlers:
         """Handle the /calendar command"""
         try:
             user_id = update.effective_user.id
+            logger.info(f"Received /calendar command from user {user_id}")
+
             now = datetime.now()
+            logger.info(f"Generating calendar for {now.year}-{now.month}")
 
             # Get workouts for current month
             start_date = now.replace(day=1).date()
@@ -772,6 +772,7 @@ class BotHandlers:
 
             # Generate calendar keyboard
             keyboard = get_calendar_keyboard(now.year, now.month, workouts)
+            logger.info("Calendar keyboard generated successfully")
 
             # Send calendar message
             await update.message.reply_text(
@@ -787,31 +788,38 @@ class BotHandlers:
         """Handle calendar navigation and date selection"""
         query = update.callback_query
         await query.answer()
+        logger.info(f"Received calendar callback: {query.data}")
 
         try:
             # Extract data from callback
             data = query.data.split('_')
+            logger.info(f"Calendar callback data: {data}")
 
             if data[0] == 'calendar':
                 # Handle month navigation
                 year = int(data[1])
                 month = int(data[2])
+                logger.info(f"Navigating to calendar {year}-{month}")
 
                 # Get workouts for the selected month
                 start_date = datetime(year, month, 1).date()
                 end_date = (datetime(year, month + 1, 1) if month < 12 else datetime(year + 1, 1, 1)).date() - timedelta(days=1)
 
                 workouts = self.db.get_workouts_by_date(query.from_user.id, start_date, end_date)
-                logger.info(f"Navigating calendar to {year}-{month}, found {len(workouts) if workouts else 0} workouts")
+                logger.info(f"Retrieved {len(workouts) if workouts else 0} workouts for {year}-{month}")
 
                 # Update calendar view
                 calendar_keyboard = get_calendar_keyboard(year, month, workouts)
                 await query.message.edit_reply_markup(reply_markup=calendar_keyboard)
+                logger.info("Calendar view updated successfully")
 
             elif data[0] == 'date':
                 # Handle date selection
                 selected_date = datetime.strptime(data[1], '%Y-%m-%d').date()
+                logger.info(f"Selected date: {selected_date}")
+
                 workouts = self.db.get_workouts_by_date(query.from_user.id, selected_date, selected_date)
+                logger.info(f"Found {len(workouts) if workouts else 0} workouts for selected date")
 
                 if workouts:
                     # Show workouts for selected date
@@ -1010,7 +1018,7 @@ class BotHandlers:
         profile_handler = ConversationHandler(
             entry_points=[
                 CommandHandler('profile', self.start_profile),
-                CallbackQueryHandler(self.handle_profile_callback, pattern='^update_profile$')
+                CallbackQueryHandler(self.handle_profile_callback, pattern='^(update_profile|keep_profile)$')
             ],
             states={
                 AGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.age)],
@@ -1034,6 +1042,7 @@ class BotHandlers:
             CommandHandler('view_profile', self.view_profile),
             CommandHandler('progress', self.show_progress),
             CommandHandler('reminder', self.set_reminder),
+            CommandHandler('calendar', self.show_calendar),
             profile_handler,
             # Add workout feedback handler
             CallbackQueryHandler(
@@ -1053,7 +1062,7 @@ class BotHandlers:
             # Add calendar navigation handlers
             CallbackQueryHandler(
                 self.handle_calendar_callback,
-                pattern='^calendar_|^date_'
+                pattern='^(calendar_|date_)$'
             ),
             CommandHandler('create_muscle_workout', self.create_muscle_workout),
             CallbackQueryHandler(
@@ -1063,9 +1072,33 @@ class BotHandlers:
         ]
 
     def register_handlers(self, application):
-        """Register all handlers with the application"""
-        for handler in self.get_handlers():
-            application.add_handler(handler)
+        """Register all command handlers"""
+        # Calendar handlers first to ensure proper handling
+        application.add_handler(CommandHandler("calendar", self.show_calendar))
+        application.add_handler(CallbackQueryHandler(
+            self.handle_calendar_callback,
+            pattern=r"^(calendar_\d{4}_\d{1,2}|date_\d{4}-\d{2}-\d{2})$"
+        ))
+
+        # Other command handlers
+        application.add_handler(CommandHandler("start", self.start))
+        application.add_handler(CommandHandler("help", self.help))
+        application.add_handler(CommandHandler("progress", self.show_progress))
+        application.add_handler(CommandHandler("reminder", self.set_reminder))
+        application.add_handler(CommandHandler("workout", self.workout))
+        application.add_handler(CommandHandler("start_workout", self.start_workout))
+        application.add_handler(CommandHandler("start_gym_workout", self.start_gym_workout))
+        application.add_handler(CommandHandler("view_profile", self.view_profile))
+
+        # Other callback handlers
+        application.add_handler(CallbackQueryHandler(self.handle_workout_feedback, pattern=r"^feedback_"))
+        application.add_handler(CallbackQueryHandler(self.handle_profile_callback, pattern=r"^(update_profile|keep_profile)$"))
+        application.add_handler(CallbackQueryHandler(
+            self.handle_gym_workout_callback,
+            pattern=r"^(exercise_timer_|circuit_rest_|exercise_rest_|rest_|exercise_done|set_done|prev_exercise|next_exercise|finish_workout)"
+        ))
+        application.add_handler(CommandHandler('create_muscle_workout', self.create_muscle_workout))
+        application.add_handler(CallbackQueryHandler(self.handle_muscle_group_selection, pattern=r"^muscle_"))
 
     async def cancel_profile(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Cancel profile creation"""

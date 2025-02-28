@@ -17,5 +17,89 @@
     "equipment": "зал",
     "level": "advanced",
     "goal": "musclegain"
+  },
+  "5311473961": {
+    "exercises": [
+      {
+        "name": "Берпи без прыжка",
+        "target_muscle": "разминка",
+        "difficulty": "начальный",
+        "reps": 0,
+        "weight": 0,
+        "sets": 1,
+        "sets_rest": 0,
+        "current_set": 1,
+        "gif_url": "https://media1.tenor.com/m/HVa3Wh0CD8YAAAAd/funny-burpees.gif"
+      },
+      {
+        "name": "Тяга гантелей к телу лежа на наклонной скамье",
+        "target_muscle": "спина",
+        "difficulty": "средний",
+        "reps": 15,
+        "weight": 11,
+        "sets": 5,
+        "sets_rest": 40,
+        "current_set": 1,
+        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/03271201.mp4"
+      },
+      {
+        "name": "Подтягивания с резиной",
+        "target_muscle": "спина",
+        "difficulty": "средний",
+        "reps": 12,
+        "weight": 0,
+        "sets": 5,
+        "sets_rest": 40,
+        "current_set": 1,
+        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/38441201.mp4"
+      },
+      {
+        "name": "Тяга блока из-за головы вперед на трицепс",
+        "target_muscle": "трицепс",
+        "difficulty": "средний",
+        "reps": 18,
+        "weight": 10,
+        "sets": 5,
+        "sets_rest": 40,
+        "current_set": 1,
+        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/17221201.mp4"
+      },
+      {
+        "name": "Узкие отжимания",
+        "target_muscle": "трицепс",
+        "difficulty": "средний",
+        "reps": 22,
+        "weight": 0,
+        "sets": 5,
+        "sets_rest": 40,
+        "current_set": 1,
+        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/02591201.mp4"
+      },
+      {
+        "name": "Поднятие штанги прямым хватом до груди",
+        "target_muscle": "плечи",
+        "difficulty": "средний",
+        "reps": 15,
+        "weight": 10,
+        "sets": 5,
+        "sets_rest": 40,
+        "current_set": 1,
+        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/01201201.mp4"
+      },
+      {
+        "name": "Боковые скручивания на блоке",
+        "target_muscle": "пресс",
+        "difficulty": "средний",
+        "reps": 18,
+        "weight": 7,
+        "sets": 5,
+        "sets_rest": 40,
+        "current_set": 1,
+        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/02221201.mp4"
+      }
+    ],
+    "total_exercises": 7,
+    "current_exercise": 1,
+    "workout_type": "gym"
   }
 }

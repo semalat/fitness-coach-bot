@@ -30,7 +30,11 @@ def get_muscle_group_keyboard():
         ['Руки', 'Спина'],
         ['Ягодицы']
     ]
-    return InlineKeyboardMarkup([[InlineKeyboardButton(muscle, callback_data=f"muscle_{muscle.lower()}") for muscle in row] for row in muscle_groups])
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton(muscle, callback_data=f"muscle_{muscle.lower()}") 
+         for muscle in row] 
+        for row in muscle_groups
+    ])
 
 def get_workout_feedback_keyboard():
     """Return keyboard with workout feedback options"""
@@ -48,10 +52,14 @@ def get_reminder_keyboard():
         ["13:00", "15:00", "17:00"],
         ["19:00", "21:00"]
     ]
-    keyboard = [[InlineKeyboardButton(time, callback_data=f"reminder_{time}") for time in row] for row in times]
+    keyboard = [
+        [InlineKeyboardButton(time, callback_data=f"reminder_{time}") 
+         for time in row] 
+        for row in times
+    ]
     return InlineKeyboardMarkup(keyboard)
 
-def get_calendar_keyboard(year, month, workout_dates):
+def get_calendar_keyboard(year, month, workouts):
     """Return keyboard with calendar for specified month"""
     keyboard = []
 
@@ -65,6 +73,7 @@ def get_calendar_keyboard(year, month, workout_dates):
 
     # Get calendar for month
     cal = calendar.monthcalendar(year, month)
+    workout_dates = {w['date'] for w in (workouts or [])}  # Handle None safely
 
     for week in cal:
         row = []
@@ -76,7 +85,12 @@ def get_calendar_keyboard(year, month, workout_dates):
                 date = f"{year}-{month:02d}-{day:02d}"
                 # Check if workout exists for this date
                 if date in workout_dates:
-                    btn = InlineKeyboardButton(f"💪{day}", callback_data=f"date_{date}")
+                    # Find workout for this date to determine status
+                    workout = next((w for w in workouts if w.get('date') == date), None)
+                    if workout and workout.get('workout_completed', False):
+                        btn = InlineKeyboardButton(f"💪{day}", callback_data=f"date_{date}")
+                    else:
+                        btn = InlineKeyboardButton(f"⭕{day}", callback_data=f"date_{date}")
                 else:
                     btn = InlineKeyboardButton(f"{day}", callback_data=f"date_{date}")
             row.append(btn)

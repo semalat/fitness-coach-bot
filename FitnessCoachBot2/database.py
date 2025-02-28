@@ -347,3 +347,65 @@ class Database:
         except Exception as e:
             logger.error(f"Error loading {filename}: {e}")
             return {}
+
+    def get_detailed_progress_stats(self, user_id, days=30):
+        """Get detailed progress statistics"""
+        user_id = str(user_id)
+        workouts = self.get_user_progress(user_id)
+
+        if not workouts:
+            return {
+                "total_workouts": 0,
+                "completion_rate": 0,
+                "streaks": {"current": 0, "longest": 0},
+                "weekly_stats": {},
+                "monthly_stats": {}
+            }
+
+        # Calculate date ranges
+        today = datetime.now().date()
+        start_date = today - timedelta(days=days)
+
+        # Initialize stats
+        total_workouts = len(workouts)
+        completed_workouts = sum(1 for w in workouts if w.get('workout_completed', False))
+        completion_rate = int((completed_workouts / total_workouts * 100) if total_workouts > 0 else 0)
+
+        # Get streak information
+        streaks = self.get_workout_streak(user_id)
+
+        # Weekly and monthly stats
+        weekly_stats = defaultdict(lambda: {"workouts": 0, "completed": 0, "completion_rate": 0})
+        monthly_stats = defaultdict(lambda: {"workouts": 0, "completed": 0, "completion_rate": 0})
+
+        for workout in workouts:
+            workout_date = datetime.strptime(workout['date'], '%Y-%m-%d').date()
+            if workout_date >= start_date:
+                # Weekly stats
+                week = workout_date.isocalendar()[1]  # Get week number
+                week_key = f"Week {week}"
+                weekly_stats[week_key]["workouts"] += 1
+                if workout.get('workout_completed', False):
+                    weekly_stats[week_key]["completed"] += 1
+
+                # Monthly stats
+                month_key = workout_date.strftime('%B %Y')  # Month name and year
+                monthly_stats[month_key]["workouts"] += 1
+                if workout.get('workout_completed', False):
+                    monthly_stats[month_key]["completed"] += 1
+
+        # Calculate completion rates for each period
+        for stats in weekly_stats.values():
+            stats["completion_rate"] = int((stats["completed"] / stats["workouts"] * 100) if stats["workouts"] > 0 else 0)
+
+        for stats in monthly_stats.values():
+            stats["completion_rate"] = int((stats["completed"] / stats["workouts"] * 100) if stats["workouts"] > 0 else 0)
+
+        return {
+            "total_workouts": total_workouts,
+            "completed_workouts": completed_workouts,
+            "completion_rate": completion_rate,
+            "streaks": streaks,
+            "weekly_stats": dict(weekly_stats),
+            "monthly_stats": dict(monthly_stats)
+        }

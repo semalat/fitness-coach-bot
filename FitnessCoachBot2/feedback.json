@@ -59,6 +59,24 @@
     "workout_20250225_172724": {
       "physical_state": "too_easy",
       "timestamp": "2025-02-25 17:27:31"
+    },
+    "workout_20250228_114257": {
+      "workout_id": "workout_20250228_114257",
+      "emotional_state": null,
+      "physical_state": "ok",
+      "timestamp": "2025-02-28 11:43:03"
+    },
+    "workout_20250228_114421": {
+      "workout_id": "workout_20250228_114421",
+      "emotional_state": "fun",
+      "physical_state": null,
+      "timestamp": "2025-02-28 11:44:26"
+    },
+    "workout_20250228_114539": {
+      "workout_id": "workout_20250228_114539",
+      "emotional_state": null,
+      "physical_state": null,
+      "timestamp": "2025-02-28 11:45:44"
     }
   }
 }

@@ -776,7 +776,7 @@ class BotHandlers:
         logger.info("Calendar message sent successfully")
 
     async def handle_calendar_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle calendar navigation and date selection"""
+        """Handle calendar-related callbacks"""
         query = update.callback_query
         await query.answer()
 
@@ -786,35 +786,49 @@ class BotHandlers:
             _, year, month = query.data.split("_")
             year, month = int(year), int(month)
 
-            # Get workout dates
+            # Get user's workout dates for thismonth
             user_id = update.effective_user.id
-            workouts = self.db.get_user_progress(user_id)
-            workout_dates = {workout['date'] for workout in workouts}
+            workout_dates = self.db.get_workout_dates(user_id, year, month)
 
-            # Update calendar view
-            keyboard = get_calendar_keyboard(year, month, workout_dates)
-            await query.message.edit_reply_markup(reply_markup=keyboard)
+            # Generate new calendar keyboard
+            reply_markup = get_calendar_keyboard(year, month, workout_dates)
+            await query.message.edit_reply_markup(reply_markup=reply_markup)
 
         elif query.data.startswith("date_"):
             # Date selection callback
-            selected_date = query.data.split("_")[1]
-            user_id = update.effective_user.id
+            date_str = query.data.split("_")[1]
 
-            # Get workouts for selected date
-            workouts = [w for w in self.db.get_user_progress(user_id) if w['date'] == selected_date]
+            try:
+                selected_date = datetime.strptime(date_str, '%Y-%m-%d')
+                # Get workout data for the selected date
+                user_id = update.effective_user.id
+                workout_data = self.db.get_workout_by_date(user_id, date_str)
 
-            if workouts:
-                message = f"📅 Тренировки {selected_date}:\n\n"
-                for i, workout in enumerate(workouts, 1):
-                    completion = (workout['exercises_completed'] / workout['total_exercises']) * 100
-                    message += f"Тренировка {i}:\n"
-                    message += f"✅ Выполнено: {workout['exercises_completed']}/{workout['total_exercises']}\n"
-                    message += f"📊Процент выполнения: {completion:.1f}%\n\n"
-            else:
-                message = f"📅 {selected_date}: тренировок не было"
+                if workout_data:
+                    # Format workout details
+                    message = f"📅 Тренировка {selected_date.strftime('%d.%m.%Y')}:\n\n"
+                    message += f"✅ Выполнено упражнений: {workout_data.get('exercises_completed', 0)}\n"
+                    message += f"💪 Всего упражнений: {workout_data.get('total_exercises', 0)}\n"
 
-            await query.message.reply_text(message)
-            logger.info(f"Calendar date details sent for {selected_date}")
+                    if workout_data.get('feedback'):
+                        message += "\n📝 Ваш отзыв:\n"
+                        feedback = workout_data['feedback']
+                        if 'emotional_state' in feedback:
+                            message += "😊 " if feedback['emotional_state'] == 'fun' else "😐 "
+                        if 'physical_state' in feedback:
+                            message += {
+                                'too_easy': "Было легко\n",
+                                'ok': "Нормальная нагрузка\n",
+                                'tired': "Было тяжело\n"
+                            }.get(feedback['physical_state'], "")
+                else:
+                    message = f"На {selected_date.strftime('%d.%m.%Y')} тренировок не найдено."
+
+                await query.message.reply_text(message)
+
+            except ValueError as e:
+                logger.error(f"Error parsing date: {e}")
+                await query.message.reply_text("Произошла ошибка при обработке даты.")
 
     async def set_reminder(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle the /reminder command"""
@@ -982,8 +996,16 @@ class BotHandlers:
                 "Произошла ошибка при создании тренировки. Пожалуйста, попробуйте позже."
             )
 
+    async def cancel(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Cancel and end the conversation."""
+        await update.message.reply_text(
+            "Операция отменена. Используйте /help чтобы увидеть доступные команды."
+        )
+        return ConversationHandler.END
+
     def get_handlers(self):
-        """Return all handlers"""
+        """Return list of handlers to be registered"""
+        # Create profile handler
         profile_handler = ConversationHandler(
             entry_points=[
                 CommandHandler('profile', self.start_profile),
@@ -998,40 +1020,44 @@ class BotHandlers:
                 FITNESS_LEVEL: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.fitness_level)],
                 EQUIPMENT: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.equipment)]
             },
-            fallbacks=[CommandHandler('cancel', self.cancel_profile)]
+            fallbacks=[CommandHandler('cancel', self.cancel)],
+            name="profile_conversation"  # Add name for better logging
         )
 
         return [
-            profile_handler,
             CommandHandler('start', self.start),
             CommandHandler('help', self.help),
-            CommandHandler('view_profile', self.view_profile),
             CommandHandler('workout', self.workout),
             CommandHandler('start_workout', self.start_workout),
             CommandHandler('start_gym_workout', self.start_gym_workout),
+            CommandHandler('view_profile', self.view_profile),
             CommandHandler('progress', self.show_progress),
-            CommandHandler('calendar', self.show_calendar),
             CommandHandler('reminder', self.set_reminder),
-            CommandHandler('create_muscle_workout', self.create_muscle_workout),
+            profile_handler,
+            # Add workout feedback handler
+            CallbackQueryHandler(
+                self.handle_workout_feedback,
+                pattern='^feedback_(fun|not_fun|too_easy|ok|tired)$'
+            ),
+            # Add workout control handlers
             CallbackQueryHandler(
                 self.handle_gym_workout_callback,
-                pattern='^(exercise_timer_|circuit_rest_|exercise_rest_|set_done|rest_|prev_exercise|next_exercise|finish_workout|exercise_done)$'
+                pattern='^(exercise_timer_|circuit_rest_|exercise_rest_|rest_|exercise_done|set_done|prev_exercise|next_exercise|finish_workout)$'
             ),
+            # Add reminder handlers
+            CallbackQueryHandler(
+                self.handle_reminder_callback,
+                pattern='^reminder_'
+            ),
+            # Add calendar navigation handlers
+            CallbackQueryHandler(
+                self.handle_calendar_callback,
+                pattern='^calendar_|^date_'
+            ),
+            CommandHandler('create_muscle_workout', self.create_muscle_workout),
             CallbackQueryHandler(
                 self.handle_muscle_group_selection,
                 pattern='^muscle_'
-            ),
-            CallbackQueryHandler(
-                self.handle_workout_feedback,
-                pattern="^feedback_"
-            ),
-            CallbackQueryHandler(
-                self.handle_calendar_callback,
-                pattern="^calendar_"
-            ),
-            CallbackQueryHandler(
-                self.handle_reminder_callback,
-                pattern="^reminder_"
             )
         ]
 
@@ -1052,58 +1078,48 @@ class BotHandlers:
         await update.message.reply_text(messages.HELP_MESSAGE)
 
     async def handle_workout_feedback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle feedback about completed workout"""
+        """Handle workout feedback"""
         query = update.callback_query
         await query.answer()
 
-        user_id = update.effective_user.id
-        workout_id = context.user_data.get('last_workout_id')
+        feedback_type = query.data.split('_')[1]
 
+        # Initialize response variables
+        emotional_response = None
+        physical_response = None
+
+        # Map feedback to responses
+        if feedback_type == 'fun':
+            emotional_response = 'fun'
+        elif feedback_type == 'not_fun':
+            emotional_response = 'not_fun'
+        elif feedback_type == 'too_easy':
+            physical_response = 'too_easy'
+        elif feedback_type == 'ok':
+            physical_response = 'ok'
+        elif feedback_type == 'tired':
+            physical_response = 'tired'
+
+        # Get workout ID from context
+        workout_id = context.user_data.get('last_workout_id')
         if not workout_id:
-            await query.message.reply_text("Извините, не удалось сохранить отзыв. Попробуйте снова после следующей тренировки.")
+            await query.message.reply_text("Не удалось сохранить отзыв. Пожалуйста, попробуйте снова.")
             return
 
-        feedback_data = {}
-
-        # Process emotional state feedback
-        if query.data == "feedback_fun":
-            feedback_data['emotional_state'] = 'fun'
-            emotional_response = "Отлично! 😊"
-        elif query.data == "feedback_not_fun":
-            feedback_data['emotional_state'] = 'not_fun'
-            emotional_response = "Понятно, в следующий раз будет интереснее! 🎯"
-
-        # Process physical state feedback
-        elif query.data == "feedback_too_easy":
-            feedback_data['physical_state'] = 'too_easy'
-            physical_response = "Хорошо, сделаем тренировку интенсивнее! 💪"
-        elif query.data == "feedback_ok":
-            feedback_data['physical_state'] = 'ok'
-            physical_response = "Отлично, продолжаем в том же духе! 👍"
-        elif query.data == "feedback_tired":
-            feedback_data['physical_state'] = 'tired'
-            physical_response = "Понятно, адаптируем нагрузку! 😌"
-
         # Save feedback
-        if feedback_data:
-            self.db.save_workout_feedback(user_id, workout_id, feedback_data)
+        feedback_data = {
+            'workout_id': workout_id,
+            'emotional_state': emotional_response,
+            'physical_state': physical_response,
+            'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        }
 
-            # If this is emotional feedback, ask for physical feedback
-            if 'emotional_state' in feedback_data:
-                keyboard = [
-                    [
-                        InlineKeyboardButton("💪 Слишком легко", callback_data="feedback_too_easy"),
-                        InlineKeyboardButton("👍 В самый раз", callback_data="feedback_ok"),
-                        InlineKeyboardButton("😓 Устал(а)", callback_data="feedback_tired")
-                    ]
-                ]
-                reply_markup = InlineKeyboardMarkup(keyboard)
-                await query.message.edit_text(
-                    f"{emotional_response}\n\nА как вы себя чувствуете физически после тренировки?",
-                    reply_markup=reply_markup
-                )
-            else:
-                # This is physical feedback, complete the feedback process
-                await query.message.edit_text(
-                    f"{physical_response}\n\nСпасибо за отзыв! Увидимся на следующей тренировке! 🏋️‍♂️"
-                )
+        self.db.save_workout_feedback(
+            update.effective_user.id,
+            workout_id,
+            feedback_data
+        )
+
+        await query.message.reply_text(
+            "Спасибо за отзыв! Это поможет нам подобрать более подходящие тренировки."
+        )

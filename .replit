@@ -1,1 +1,33 @@
 modules = ["python-3.11"]
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Telegram Bot"
+
+[[workflows.workflow]]
+name = "Telegram Bot"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd FitnessCoachBot2 && python bot.py"
+
+[deployment]
+run = ["sh", "-c", "cd FitnessCoachBot2 && python bot.py"]
+
+[nix]
+channel = "stable-24_05"

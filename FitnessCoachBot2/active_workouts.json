@@ -21,84 +21,150 @@
   "5311473961": {
     "exercises": [
       {
-        "name": "Берпи без прыжка",
+        "name": "Берпи с прыжком и отжиманием",
         "target_muscle": "разминка",
-        "difficulty": "начальный",
+        "difficulty": "продвинутый",
         "reps": 0,
         "weight": 0,
         "sets": 1,
         "sets_rest": 0,
         "current_set": 1,
-        "gif_url": "https://media1.tenor.com/m/HVa3Wh0CD8YAAAAd/funny-burpees.gif"
+        "gif_url": "https://media1.tenor.com/m/u2-VJiigKCkAAAAC/exercise-jump.gif"
       },
       {
-        "name": "Тяга гантелей к телу лежа на наклонной скамье",
-        "target_muscle": "спина",
+        "name": "Разводка гантелей лежа",
+        "target_muscle": "грудь",
         "difficulty": "средний",
         "reps": 15,
         "weight": 11,
         "sets": 5,
         "sets_rest": 40,
         "current_set": 1,
-        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/03271201.mp4"
+        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/03081201.mp4"
       },
       {
-        "name": "Подтягивания с резиной",
+        "name": "Жим штанги лежа на наклонной скамье",
+        "target_muscle": "грудь",
+        "difficulty": "средний",
+        "reps": 15,
+        "weight": 21,
+        "sets": 5,
+        "sets_rest": 40,
+        "current_set": 1,
+        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/00471201.mp4"
+      },
+      {
+        "name": "Тяга T-грифа одной рукой",
+        "target_muscle": "спина",
+        "difficulty": "продвинутый",
+        "reps": 15,
+        "weight": 14,
+        "sets": 5,
+        "sets_rest": 40,
+        "current_set": 1,
+        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/00641201.mp4"
+      },
+      {
+        "name": "Горизонтальная рычажная тяга на тренажере сидя",
         "target_muscle": "спина",
         "difficulty": "средний",
-        "reps": 12,
-        "weight": 0,
+        "reps": 15,
+        "weight": 21,
         "sets": 5,
         "sets_rest": 40,
         "current_set": 1,
-        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/38441201.mp4"
+        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/13501201.mp4"
       },
       {
-        "name": "Тяга блока из-за головы вперед на трицепс",
-        "target_muscle": "трицепс",
-        "difficulty": "средний",
-        "reps": 18,
-        "weight": 10,
-        "sets": 5,
-        "sets_rest": 40,
-        "current_set": 1,
-        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/17221201.mp4"
-      },
-      {
-        "name": "Узкие отжимания",
-        "target_muscle": "трицепс",
-        "difficulty": "средний",
-        "reps": 22,
-        "weight": 0,
-        "sets": 5,
-        "sets_rest": 40,
-        "current_set": 1,
-        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/02591201.mp4"
-      },
-      {
-        "name": "Поднятие штанги прямым хватом до груди",
+        "name": "Армейская тяга (жим штанги стоя)",
         "target_muscle": "плечи",
         "difficulty": "средний",
         "reps": 15,
-        "weight": 10,
+        "weight": 21,
         "sets": 5,
         "sets_rest": 40,
         "current_set": 1,
-        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/01201201.mp4"
+        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/11651201.mp4"
       },
       {
-        "name": "Боковые скручивания на блоке",
-        "target_muscle": "пресс",
+        "name": "Жим ногами",
+        "target_muscle": "квадрицепс",
+        "difficulty": "средний",
+        "reps": 15,
+        "weight": 56,
+        "sets": 5,
+        "sets_rest": 40,
+        "current_set": 1,
+        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/07401201.mp4"
+      },
+      {
+        "name": "Приседания в тренажере",
+        "target_muscle": "квадрицепс",
+        "difficulty": "средний",
+        "reps": 15,
+        "weight": 28,
+        "sets": 5,
+        "sets_rest": 40,
+        "current_set": 1,
+        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/23841201.mp4"
+      },
+      {
+        "name": "Становая тяга",
+        "target_muscle": "задняя поверхность ног",
+        "difficulty": "продвинутый",
+        "reps": 15,
+        "weight": 28,
+        "sets": 5,
+        "sets_rest": 40,
+        "current_set": 1,
+        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/01161201.mp4"
+      },
+      {
+        "name": "Экстензия на задние сидя",
+        "target_muscle": "задняя поверхность ног",
+        "difficulty": "средний",
+        "reps": 22,
+        "weight": 21,
+        "sets": 5,
+        "sets_rest": 40,
+        "current_set": 1,
+        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/05991201.mp4"
+      },
+      {
+        "name": "Поднятие гантелей на бицепс сидя, боком, с упором локтя в ногу",
+        "target_muscle": "бицепс",
+        "difficulty": "продвинутый",
+        "reps": 18,
+        "weight": 7,
+        "sets": 5,
+        "sets_rest": 40,
+        "current_set": 1,
+        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/02971201.mp4"
+      },
+      {
+        "name": "Французский жим штанги",
+        "target_muscle": "трицепс",
         "difficulty": "средний",
         "reps": 18,
         "weight": 7,
         "sets": 5,
         "sets_rest": 40,
         "current_set": 1,
-        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/02221201.mp4"
+        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/00601201.mp4"
+      },
+      {
+        "name": "Дрэгонфлай (подъемы корпуса лежа, держась за скамью)",
+        "target_muscle": "пресс",
+        "difficulty": "продвинутый",
+        "reps": 15,
+        "weight": 0,
+        "sets": 5,
+        "sets_rest": 40,
+        "current_set": 1,
+        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/49821201.mp4"
       }
     ],
-    "total_exercises": 7,
+    "total_exercises": 13,
     "current_exercise": 1,
     "workout_type": "gym"
   }

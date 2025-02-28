@@ -1,3 +1,7 @@
+from telegram.ext import (
+    ContextTypes, CommandHandler, CallbackQueryHandler, ConversationHandler,
+    MessageHandler, filters, Application
+)
 import asyncio
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, Message
 from telegram.ext import (
@@ -678,13 +682,19 @@ class BotHandlers:
             age = int(update.message.text)
             if 12 <= age <= 100:
                 context.user_data['age'] = age
-                await update.message.reply_text(messages.PROFILE_PROMPTS['height'])
+                await update.message.reply_text(
+                    "📏 Отлично! Теперь укажите ваш рост в сантиметрах (например, 175):"
+                )
                 return HEIGHT
             else:
-                await update.message.reply_text(messages.INVALID_AGE)
+                await update.message.reply_text(
+                    "❌ Пожалуйста, введите корректный возраст (от 12 до 100 лет)"
+                )
                 return AGE
         except ValueError:
-            await update.message.reply_text(messages.INVALID_AGE)
+            await update.message.reply_text(
+                "❌ Пожалуйста, введите возраст числом"
+            )
             return AGE
 
     async def height(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -693,20 +703,26 @@ class BotHandlers:
             height = int(update.message.text)
             if 100 <= height <= 250:
                 context.user_data['height'] = height
-                await update.message.reply_text(messages.PROFILE_PROMPTS['weight'])
+                await update.message.reply_text(
+                    "⚖️ Теперь укажите ваш вес в килограммах (например, 70):"
+                )
                 return WEIGHT
             else:
-                await update.message.reply_text(messages.INVALID_HEIGHT)
+                await update.message.reply_text(
+                    "❌ Пожалуйста, введите корректный рост (от 100 до 250 см)"
+                )
                 return HEIGHT
         except ValueError:
-            await update.message.reply_text(messages.INVALID_HEIGHT)
+            await update.message.reply_text(
+                "❌ Пожалуйста, введите рост числом"
+            )
             return HEIGHT
 
     async def weight(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle weight input"""
         try:
             weight = float(update.message.text)
-            if 30 <= weight <= 250:
+            if 30 <= weight <= 200:
                 context.user_data['weight'] = weight
                 await update.message.reply_text(
                     messages.PROFILE_PROMPTS['sex'],
@@ -714,31 +730,33 @@ class BotHandlers:
                 )
                 return SEX
             else:
-                await update.message.reply_text(messages.INVALID_WEIGHT)
+                await update.message.reply_text("Пожалуйста, введите корректный вес (от 30 до 200 кг)")
                 return WEIGHT
         except ValueError:
-            await update.message.reply_text(messages.INVALID_WEIGHT)
+            await update.message.reply_text("Пожалуйста, введите вес числом")
             return WEIGHT
 
     async def sex(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle sex selection"""
-        sex = update.message.text
+        query = update.callback_query
+        sex = query.data
         if sex in ['Мужской', 'Женский']:
             context.user_data['sex'] = sex
-            await update.message.reply_text(
+            await update.callback_query.message.reply_text(
                 messages.PROFILE_PROMPTS['goals'],
                 reply_markup=get_goals_keyboard()
             )
             return GOALS
         else:
-            await update.message.reply_text(messages.INVALID_INPUT)
+            await update.callback_query.message.reply_text(messages.INVALID_INPUT)
             return SEX
 
     async def goals(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle fitness goals selection"""
-        goals = update.message.text
+        query = update.callback_query
+        goals = query.data
         context.user_data['goals'] = goals
-        await update.message.reply_text(
+        await update.callback_query.message.reply_text(
             messages.PROFILE_PROMPTS['fitness_level'],
             reply_markup=get_fitness_level_keyboard()
         )
@@ -746,9 +764,10 @@ class BotHandlers:
 
     async def fitness_level(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle fitness level selection"""
-        level = update.message.text
+        query = update.callback_query
+        level = query.data
         context.user_data['fitness_level'] = level
-        await update.message.reply_text(
+        await update.callback_query.message.reply_text(
             messages.PROFILE_PROMPTS['equipment'],
             reply_markup=get_equipment_keyboard()
         )
@@ -756,49 +775,79 @@ class BotHandlers:
 
     async def equipment(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle equipment selection and complete profile"""
-        equipment = update.message.text
-        context.user_data['equipment'] = equipment
+        try:
+            query = update.callback_query
+            equipment = query.data
+            context.user_data['equipment'] = equipment
 
-        # Save profile to database
-        self.db.save_user_profile(
-            update.effective_user.id,
-            context.user_data,
-            update.effective_user.username
-        )
-
-        await update.message.reply_text(messages.PROFILE_COMPLETE)
-        return ConversationHandler.END
-
-    async def workout(self, update: Update, context: ContextTypes.DEFAULTTYPE):
-        """Handle the /workout command - show workout overview"""
-        user_id = update.effective_user.id
-        profile = self.db.get_user_profile(user_id)
-
-        if not profile:
-            await update.message.reply_text(
-                "Сначала создайте профиль командой /profile"
+            # Save profile to database
+            self.db.save_user_profile(
+                update.effective_user.id,
+                context.user_data,
+                update.effective_user.username
             )
-            return
 
-        # Generate and cache the workout
-        equipment = profile.get('equipment', '').lower()
-        goal = profile.get('goals', 'общая физическая подготовка').lower()
+            completion_message = (
+                "✅ Профиль успешно создан!\n\n"
+                "Теперь вы можете:\n"
+                "• Начать тренировку командой /workout\n"
+                "• Посмотреть свой прогресс командой /progress\n"
+                "• Настроить напоминания командой /reminder"
+            )
+            await update.callback_query.message.reply_text(completion_message)
+            logger.info(f"Profile completed for user {update.effective_user.id}")
+            return ConversationHandler.END
 
-        if 'зал' in equipment:
-            workout = self.workout_manager.generate_gym_workout(profile)
-        else:
-            workout = self.workout_manager.generate_bodyweight_workout(profile)
+        except Exception as e:
+            logger.error(f"Error in equipment handler: {str(e)}", exc_info=True)
+            await update.callback_query.message.reply_text(
+                "❌ Произошла ошибка при сохранении профиля. Пожалуйста, попробуйте позже."
+            )
+            return ConversationHandler.END
 
-        # Save the preview workout
-        self.db.save_preview_workout(user_id, workout)
+    async def workout(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle the /workout command - show workout overview"""
+        try:
+            user_id = update.effective_user.id
+            logger.info(f"Starting workout overview for user {user_id}")
 
-        # Generate overview from the cached workout
-        if 'зал' in equipment:
-            overview = self.workout_manager._generate_gym_overview(workout)
-        else:
-            overview = self.workout_manager._generate_bodyweight_overview(workout, goal)
+            profile = self.db.get_user_profile(user_id)
+            logger.info(f"Retrieved profile data: {profile}")
 
-        await update.message.reply_text(overview)
+            if not profile:
+                await update.message.reply_text(
+                    "Сначала создайте профиль командой /profile"
+                )
+                return
+
+            # Generate and cache the workout
+            workout = self.workout_manager.generate_workout(profile)
+            self.db.save_preview_workout(user_id, workout)
+
+            # Show workout preview
+            message = "🏋️‍♂️ *Предварительный просмотр тренировки*\n\n"
+            message += f"• Упражнений: {len(workout['exercises'])}\n"
+            message += f"• Тип: {workout.get('workout_type', 'стандартный')}\n"
+            message += f"• Сложность: {workout.get('difficulty', 'средняя')}\n\n"
+
+            keyboard = [
+                [InlineKeyboardButton("▶️ Начать тренировку", callback_data="start_workout")],
+                [InlineKeyboardButton("🔄 Сгенерировать другую", callback_data="regenerate_workout")]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+
+            await update.message.reply_text(
+                message,
+                reply_markup=reply_markup,
+                parse_mode='Markdown'
+            )
+            logger.info(f"Successfully displayed workout preview for user {user_id}")
+
+        except Exception as e:
+            logger.error(f"Error in workout command: {str(e)}", exc_info=True)
+            await update.message.reply_text(
+                "Произошла ошибка при подготовке тренировки. Пожалуйста, попробуйте позже."
+            )
 
     async def start_workout(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Start a bodyweight workout session"""
@@ -833,44 +882,94 @@ class BotHandlers:
     async def handle_profile_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle profile-related callbacks"""
         query = update.callback_query
-        await query.answer()
+        try:
+            await query.answer()
+            user_id = query.from_user.id
+            logger.info(f"Processing profile callback for user {user_id}: {query.data}")
 
-        if query.data == "update_profile":
-            # Clear existing data and start profile update
-            context.user_data.clear()
-            await query.message.reply_text(messages.PROFILE_PROMPTS['age'])
-            return AGE
-        elif query.data == "keep_profile":
-            await query.message.reply_text("Хорошо, ваш профиль останется без изменений.")
+            if not query.data:
+                logger.error(f"Empty callback data received from user {user_id}")
+                await query.message.reply_text(
+                    "Произошла ошибка при обработке запроса. Пожалуйста, попробуйте еще раз."
+                )
+                return ConversationHandler.END
+
+            if query.data == "keep_profile":
+                await query.message.reply_text(
+                    "✅ Хорошо, ваш профиль останется без изменений.\n"
+                    "Используйте /workout для начала тренировки."
+                )
+                return ConversationHandler.END
+
+            elif query.data == "update_profile_full":
+                context.user_data.clear()
+                await query.message.reply_text(
+                    "👋 Давайте обновим ваш профиль полностью!\n\n"
+                    "Для начала, укажите ваш возраст (полных лет):"
+                )
+                return AGE
+
+            elif query.data == "update_goals":
+                # Preserve existing profile data
+                existing_profile = self.db.get_user_profile(user_id)
+                if not existing_profile:
+                    await query.message.reply_text(
+                        "❌ Профиль не найден. Используйте /profile для создания нового профиля."
+                    )
+                    return ConversationHandler.END
+
+                context.user_data.update({
+                    'age': existing_profile['age'],
+                    'height': existing_profile['height'],
+                    'weight': existing_profile['weight'],
+                    'sex': existing_profile['sex'],
+                    'fitness_level': existing_profile['fitness_level'],
+                    'equipment': existing_profile['equipment']
+                })
+
+                await query.message.reply_text(
+                    "🎯 Выберите новые цели тренировок:",
+                    reply_markup=get_goals_keyboard()
+                )
+                return GOALS
+
+            elif query.data == "update_level":
+                # Preserve existing profile data
+                existing_profile = self.db.get_user_profile(user_id)
+                if not existing_profile:
+                    await query.message.reply_text(
+                        "❌ Профиль не найден. Используйте /profile для создания нового профиля."
+                    )
+                    return ConversationHandler.END
+
+                context.user_data.update({
+                    'age': existing_profile['age'],
+                    'height': existing_profile['height'],
+                    'weight': existing_profile['weight'],
+                    'sex': existing_profile['sex'],
+                    'goals': existing_profile['goals'],
+                    'equipment': existing_profile['equipment']
+                })
+
+                await query.message.reply_text(
+                    "💪 Выберите новый уровень подготовки:",
+                    reply_markup=get_fitness_level_keyboard()
+                )
+                return FITNESS_LEVEL
+
+            else:
+                logger.warning(f"Unexpected callback data received: {query.data}")
+                await query.message.reply_text(
+                    "❌ Неизвестная команда. Пожалуйста, попробуйте еще раз."
+                )
+                return ConversationHandler.END
+
+        except Exception as e:
+            logger.error(f"Error in handle_profile_callback: {str(e)}", exc_info=True)
+            await query.message.reply_text(
+                "❌ Произошла ошибка при обработке запроса. Пожалуйста, попробуйте позже."
+            )
             return ConversationHandler.END
-        elif query.data == "update_profile_full":
-            context.user_data.clear()
-            await query.message.reply_text(messages.PROFILE_PROMPTS['age'])
-            return AGE
-        elif query.data == "update_goals":
-            context.user_data['age'] = self.db.get_user_profile(query.from_user.id)['age']
-            context.user_data['height'] = self.db.get_user_profile(query.from_user.id)['height']
-            context.user_data['weight'] = self.db.get_user_profile(query.from_user.id)['weight']
-            context.user_data['sex'] = self.db.get_user_profile(query.from_user.id)['sex']
-            context.user_data['fitness_level'] = self.db.get_user_profile(query.from_user.id)['fitness_level']
-            context.user_data['equipment'] = self.db.get_user_profile(query.from_user.id)['equipment']
-            await query.message.reply_text(
-                messages.PROFILE_PROMPTS['goals'],
-                reply_markup=get_goals_keyboard()
-            )
-            return GOALS
-        elif query.data == "update_level":
-            context.user_data['age'] = self.db.get_user_profile(query.from_user.id)['age']
-            context.user_data['height'] = self.db.get_user_profile(query.from_user.id)['height']
-            context.user_data['weight'] = self.db.get_user_profile(query.from_user.id)['weight']
-            context.user_data['sex'] = self.db.get_user_profile(query.from_user.id)['sex']
-            context.user_data['goals'] = self.db.get_user_profile(query.from_user.id)['goals']
-            context.user_data['equipment'] = self.db.get_user_profile(query.from_user.id)['equipment']
-            await query.message.reply_text(
-                messages.PROFILE_PROMPTS['fitness_level'],
-                reply_markup=get_fitness_level_keyboard()
-            )
-            return FITNESS_LEVEL
 
     async def handle_progress_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle progress dashboard callbacks"""
@@ -1264,10 +1363,10 @@ class BotHandlers:
                 AGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.age)],
                 HEIGHT: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.height)],
                 WEIGHT: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.weight)],
-                SEX: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.sex)],
-                GOALS: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.goals)],
-                FITNESS_LEVEL: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.fitness_level)],
-                EQUIPMENT: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.equipment)]
+                SEX: [CallbackQueryHandler(self.sex)],
+                GOALS: [CallbackQueryHandler(self.goals)],
+                FITNESS_LEVEL: [CallbackQueryHandler(self.fitness_level)],
+                EQUIPMENT: [CallbackQueryHandler(self.equipment)]
             },
             fallbacks=[CommandHandler('cancel', self.cancel)],
             name="profile_conversation"  # Add name for better logging
@@ -1312,8 +1411,41 @@ class BotHandlers:
             CallbackQueryHandler(self.handle_progress_callback, pattern='^(progress_weekly|progress_monthly|achievements|workout_history|intensity_analysis|back_to_dashboard)$')
         ]
 
-    def register_handlers(self, application):
-        """Register all command handlers"""
+    def register_handlers(self, application: Application):
+        """Register all handlers"""
+        # Profile conversation handler
+        profile_handler = ConversationHandler(
+            entry_points=[
+                CommandHandler('profile', self.start_profile),
+                CallbackQueryHandler(
+                    self.handle_profile_callback,
+                    pattern='^(update_profile_full|update_goals|update_level|keep_profile)$'
+                )
+            ],
+            states={
+                AGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.age)],
+                HEIGHT: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.height)],
+                WEIGHT: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.weight)],
+                SEX: [CallbackQueryHandler(self.sex)],
+                GOALS: [CallbackQueryHandler(self.goals)],
+                FITNESS_LEVEL: [CallbackQueryHandler(self.fitness_level)],
+                EQUIPMENT: [CallbackQueryHandler(self.equipment)]
+            },
+            fallbacks=[CommandHandler('cancel', self.cancel)],
+            name="profile_conversation",
+            persistent=False
+        )
+
+        application.add_handler(profile_handler)
+        logger.info("Profile conversation handler registered")
+
+        # Update the general callback handler pattern to include new profile actions
+        application.add_handler(
+            CallbackQueryHandler(
+                self.handle_profile_callback,
+                pattern='^(update_profile_full|update_goals|update_level|keep_profile)$'
+            )
+        )
         # Calendar handlers first to ensure proper handling
         application.add_handler(CommandHandler("calendar", self.show_calendar))
         application.add_handler(CallbackQueryHandler(
@@ -1337,12 +1469,11 @@ class BotHandlers:
         application.add_handler(CallbackQueryHandler(self.handle_profile_callback, pattern=r"^(update_profile|keep_profile|update_profile_full|update_goals|update_level)$"))
         application.add_handler(CallbackQueryHandler(
             self.handle_gym_workout_callback,
-            pattern=r"^(exercise_timer_|circuit_rest_|exercise_rest_|rest_|exercise_done|set_done|prev_exercise|next_exercise|finish_workout)"
+            pattern=r"^(exercise_timer_|circuit_rest_|exercise_rest_|rest_|exercise_done|set_done|prev_exercise|next_exercise|finish_workout)$"
         ))
         application.add_handler(CallbackQueryHandler(self.handle_reminder_callback, pattern=r"^reminder_"))
         application.add_handler(CallbackQueryHandler(self.handle_progress_callback, pattern=r"^(progress_weekly|progress_monthly|achievements|workout_history|intensity_analysis|back_to_dashboard)$"))
         application.add_handler(CallbackQueryHandler(self.handle_muscle_group_selection, pattern=r"^muscle_"))
-
 
     async def cancel_profile(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Cancel profile creation"""

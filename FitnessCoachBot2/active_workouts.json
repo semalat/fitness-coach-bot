@@ -17,5 +17,89 @@
     "equipment": "зал",
     "level": "advanced",
     "goal": "musclegain"
+  },
+  "5311473961": {
+    "exercises": [
+      {
+        "name": "Jumping Jacks",
+        "target_muscle": "разминка",
+        "difficulty": "начальный",
+        "reps": 0,
+        "weight": 0,
+        "sets": 1,
+        "sets_rest": 0,
+        "current_set": 1,
+        "gif_url": "https://media1.tenor.com/m/9YRh0wV0VosAAAAd/exercise-workout.gif"
+      },
+      {
+        "name": "Жим ногами",
+        "target_muscle": "квадрицепс",
+        "difficulty": "средний",
+        "reps": 15,
+        "weight": 56,
+        "sets": 5,
+        "sets_rest": 40,
+        "current_set": 1,
+        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/07401201.mp4"
+      },
+      {
+        "name": "Фронтальные приседания со штангой",
+        "target_muscle": "квадрицепс",
+        "difficulty": "продвинутый",
+        "reps": 12,
+        "weight": 21,
+        "sets": 5,
+        "sets_rest": 40,
+        "current_set": 1,
+        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/00291201.mp4"
+      },
+      {
+        "name": "Становая тяга",
+        "target_muscle": "задняя поверхность ног",
+        "difficulty": "продвинутый",
+        "reps": 15,
+        "weight": 28,
+        "sets": 5,
+        "sets_rest": 40,
+        "current_set": 1,
+        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/01161201.mp4"
+      },
+      {
+        "name": "Экстензия на задние сидя",
+        "target_muscle": "задняя поверхность ног",
+        "difficulty": "средний",
+        "reps": 22,
+        "weight": 21,
+        "sets": 5,
+        "sets_rest": 40,
+        "current_set": 1,
+        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/05991201.mp4"
+      },
+      {
+        "name": "Поднятие ez-штанги верхним хватом",
+        "target_muscle": "предплечья",
+        "difficulty": "средний",
+        "reps": 15,
+        "weight": 7,
+        "sets": 5,
+        "sets_rest": 40,
+        "current_set": 1,
+        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/04511201.mp4"
+      },
+      {
+        "name": "Планка с помощью ролика для пресса (с колен)",
+        "target_muscle": "пресс",
+        "difficulty": "продвинутый",
+        "reps": 12,
+        "weight": 0,
+        "sets": 5,
+        "sets_rest": 40,
+        "current_set": 1,
+        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/07961201.mp4"
+      }
+    ],
+    "total_exercises": 7,
+    "current_exercise": 1,
+    "workout_type": "gym"
   }
 }

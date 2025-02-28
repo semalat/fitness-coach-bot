@@ -794,7 +794,7 @@ class BotHandlers:
         
         logger.info(f"Processing profile callback for user {update.effective_user.id}: {query.data}")
 
-        if query.data == "update_profile":
+        if query.data == "update_profile" or query.data == "update_profile_full":
             # Clear existing data and start profile update
             context.user_data.clear()
             await query.message.reply_text(messages.PROFILE_PROMPTS['age'])
@@ -1276,6 +1276,9 @@ class BotHandlers:
         application.add_handler(CommandHandler("view_profile", self.view_profile))
         application.add_handler(CommandHandler('create_muscle_workout', self.create_muscle_workout))
 
+        # Add dedicated handler for profile updates outside of conversation
+        application.add_handler(CallbackQueryHandler(self.handle_profile_callback, pattern=r"^(update_profile|update_profile_full|keep_profile)$"))
+        
         # Other callback handlers
         application.add_handler(CallbackQueryHandler(self.handle_workout_feedback, pattern=r"^feedback_"))
         application.add_handler(CallbackQueryHandler(

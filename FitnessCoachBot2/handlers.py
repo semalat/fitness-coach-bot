@@ -2,7 +2,7 @@ import asyncio
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, Message
 from telegram.ext import (
     ContextTypes, CommandHandler, CallbackQueryHandler, ConversationHandler,
-    MessageHandler, filters, Application
+    MessageHandler, filters
 )
 import logging
 import messages
@@ -600,39 +600,24 @@ class BotHandlers:
         await update.message.reply_text(profile_text, reply_markup=reply_markup)
 
     async def start_profile(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Start the profile creation process or offer to update existing profile"""
+        """Start the profile creation process"""
         user_id = update.effective_user.id
-        logger.info(f"Starting profile process for user {user_id}")
         profile = self.db.get_user_profile(user_id)
 
         if profile:
-            logger.info(f"Existing profile found for user {user_id}, showing update options")
-            # Format current profile data for preview
-            profile_text = "🏋️‍♂️ Ваш текущий профиль:\n\n"
-            profile_text += f"📊 Возраст: {profile['age']} лет\n"
-            profile_text += f"📏 Рост: {profile['height']} см\n"
-            profile_text += f"⚖️ Вес: {profile['weight']} кг\n"
-            profile_text += f"👤 Пол: {profile['sex']}\n"
-            profile_text += f"🎯 Цели: {profile['goals']}\n"
-            profile_text += f"💪 Уровень подготовки: {profile['fitness_level']}\n"
-            profile_text += f"🏋️ Оборудование: {profile['equipment']}\n\n"
-
-            profile_text += "Хотите обновить свой профиль?"
-
+            # If profile exists, ask if user wants to update
             keyboard = [
                 [InlineKeyboardButton("✅ Да, обновить", callback_data="update_profile")],
                 [InlineKeyboardButton("❌ Нет, оставить текущий", callback_data="keep_profile")]
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
             await update.message.reply_text(
-                profile_text,
+                "У вас уже есть профиль. Хотите обновить его?",
                 reply_markup=reply_markup
             )
-            logger.info(f"Sent profile update options to user {user_id}")
             return ConversationHandler.END
 
-        logger.info(f"No existing profile found for user {user_id}, starting creation process")
-        # No existing profile - start creation process
+        # Clear any existing user data
         context.user_data.clear()
         await update.message.reply_text(messages.PROFILE_PROMPTS['age'])
         return AGE
@@ -734,7 +719,7 @@ class BotHandlers:
         await update.message.reply_text(messages.PROFILE_COMPLETE)
         return ConversationHandler.END
 
-    async def preview_workout(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def workout(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle the /workout command - show workout overview"""
         user_id = update.effective_user.id
         profile = self.db.get_user_profile(user_id)
@@ -763,7 +748,7 @@ class BotHandlers:
 
         await update.message.reply_text(overview)
 
-    async def start_bodyweight_workout(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def start_workout(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Start a bodyweight workout session"""
         user_id = update.effective_user.id
         profile = self.db.get_user_profile(user_id)
@@ -775,15 +760,15 @@ class BotHandlers:
         equipment = profile.get('equipment', '').lower()
         if 'зал' in equipment:
             await update.message.reply_text(
-                "Ваш профильнастроен для тренировок в зале. "
+                "Ваш профиль настроен для тренировок в зале. "
                 "Используйте /start_gym_workout для начала тренировки в зале."
             )
             return
 
         # Get the previewed workout or generate new if none exists
-        workout = self.db.db.get_preview_workout(user_id)
+        workout = self.db.get_preview_workout(user_id)
         if not workout:
-            logger.info(f"No preview workout found foruser {user_id}, generating new workout")
+            logger.info(f"No preview workout found for user {user_id}, generating new workout")
             workout = self.workout_manager.generate_bodyweight_workout(profile)
         else:
             logger.info(f"Using previewed workout for user {user_id}")
@@ -794,22 +779,17 @@ class BotHandlers:
 
 
     async def handle_profile_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle profile-related callback queries"""
+        """Handle profile-related callbacks"""
         query = update.callback_query
-        user_id = query.from_user.id
-        logger.info(f"Received profile callback from user {user_id}: {query.data}")
-
         await query.answer()
 
         if query.data == "update_profile":
-            logger.info(f"User {user_id} chose to update profile")
-            # Start profile update process
+            # Clear existing data and start profile update
             context.user_data.clear()
             await query.message.reply_text(messages.PROFILE_PROMPTS['age'])
             return AGE
         elif query.data == "keep_profile":
-            logger.info(f"User {user_id} chose to keep current profile")
-            await query.message.reply_text("👍 Хорошо, ваш профиль останется без изменений.")
+            await query.message.reply_text("Хорошо, ваш профиль останется без изменений.")
             return ConversationHandler.END
 
     async def handle_progress_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -964,7 +944,7 @@ class BotHandlers:
             logger.error(f"Error showing calendar: {str(e)}", exc_info=True)
             await update.message.reply_text("Произошла ошибка при отображении календаря. Попробуйте позже.")
 
-    async def handle_calendar_selection(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def handle_calendar_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle calendar navigation and date selection"""
         query = update.callback_query
         await query.answer()
@@ -1194,10 +1174,12 @@ class BotHandlers:
 
     def get_handlers(self):
         """Return list of handlers to be registered"""
-        logger.info("Configuring conversation handlers")
         # Create profile handler
         profile_handler = ConversationHandler(
-            entry_points=[CommandHandler('profile', self.start_profile)],
+            entry_points=[
+                CommandHandler('profile', self.start_profile),
+                CallbackQueryHandler(self.handle_profile_callback, pattern='^(update_profile|keep_profile)$')
+            ],
             states={
                 AGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.age)],
                 HEIGHT: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.height)],
@@ -1207,62 +1189,79 @@ class BotHandlers:
                 FITNESS_LEVEL: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.fitness_level)],
                 EQUIPMENT: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.equipment)]
             },
-            fallbacks=[
-                CommandHandler('cancel', self.cancel),
-                CallbackQueryHandler(self.handle_profile_callback, pattern='^(update_profile|keep_profile)$')
-            ],
-            name="profile_conversation",
-            persistent=False
+            fallbacks=[CommandHandler('cancel', self.cancel)],
+            name="profile_conversation"  # Add name for better logging
         )
-        logger.info("Profile conversation handler configured")
 
         return [
             CommandHandler('start', self.start),
-            profile_handler,  # Add profile handler here
-            CommandHandler('view_profile', self.view_profile),
-            CommandHandler('workout', self.preview_workout),
-            CommandHandler('start_workout', self.start_bodyweight_workout),
+            CommandHandler('help', self.help),
+            CommandHandler('workout', self.workout),
+            CommandHandler('start_workout', self.start_workout),
             CommandHandler('start_gym_workout', self.start_gym_workout),
-            CommandHandler('create_muscle_workout', self.create_muscle_workout),
+            CommandHandler('view_profile', self.view_profile),
             CommandHandler('progress', self.show_progress),
-            CommandHandler('help', self.help_command),
-            CommandHandler('calendar', self.show_calendar),
             CommandHandler('reminder', self.set_reminder),
-            CallbackQueryHandler(self.handle_feedback, pattern='^feedback_'),
-            CallbackQueryHandler(self.handle_muscle_group_selection, pattern='^muscle_')
+            CommandHandler('calendar', self.show_calendar),
+            profile_handler,
+            # Add workout feedback handler
+            CallbackQueryHandler(
+                self.handle_workout_feedback,
+                pattern='^feedback_(fun|not_fun|too_easy|ok|tired)$'
+            ),
+            # Add workout control handlers
+            CallbackQueryHandler(
+                self.handle_gym_workout_callback,
+                pattern='^(exercise_timer_|circuit_rest_|exercise_rest_|rest_|exercise_done|set_done|prev_exercise|next_exercise|finish_workout)$'
+            ),
+            # Add reminder handlers
+            CallbackQueryHandler(
+                self.handle_reminder_callback,
+                pattern='^reminder_'
+            ),
+            # Add calendar navigation handlers
+            CallbackQueryHandler(
+                self.handle_calendar_callback,
+                pattern='^(calendar_|date_)$'
+            ),
+            CommandHandler('create_muscle_workout', self.create_muscle_workout),
+            CallbackQueryHandler(
+                self.handle_muscle_group_selection,
+                pattern='^muscle_'
+            ),
+            CallbackQueryHandler(self.handle_progress_callback, pattern='^(progress_weekly|progress_monthly|achievements|workout_history|intensity_analysis|back_to_dashboard)$')
         ]
 
-    def register_handlers(self, application: Application):
+    def register_handlers(self, application):
         """Register all command handlers"""
-        logger.info("Registering handlers with application")
-
-        # Register all handlers from get_handlers
-        for handler in self.get_handlers():
-            application.add_handler(handler)
-            logger.info(f"Registered handler: {handler.__class__.__name__}")
-
-        # Add callback query handlers
+        # Calendar handlers first to ensure proper handling
+        application.add_handler(CommandHandler("calendar", self.show_calendar))
         application.add_handler(CallbackQueryHandler(
-            self.handle_calendar_selection,
-            pattern=r"^calendar_"
+            self.handle_calendar_callback,
+            pattern=r"^(calendar_\d{4}_\d{1,2}|date_\d{4}-\d{2}-\d{2})$"
         ))
 
+        # Other command handlers
+        application.add_handler(CommandHandler("start", self.start))
+        application.add_handler(CommandHandler("help", self.help))
+        application.add_handler(CommandHandler("progress", self.show_progress))
+        application.add_handler(CommandHandler("reminder", self.set_reminder))
+        application.add_handler(CommandHandler("workout", self.workout))
+        application.add_handler(CommandHandler("start_workout", self.start_workout))
+        application.add_handler(CommandHandler("start_gym_workout", self.start_gym_workout))
+        application.add_handler(CommandHandler("view_profile", self.view_profile))
+        application.add_handler(CommandHandler('create_muscle_workout', self.create_muscle_workout))
+
+        # Other callback handlers
+        application.add_handler(CallbackQueryHandler(self.handle_workout_feedback, pattern=r"^feedback_"))
+        application.add_handler(CallbackQueryHandler(self.handle_profile_callback, pattern=r"^(update_profile|keep_profile)$"))
         application.add_handler(CallbackQueryHandler(
             self.handle_gym_workout_callback,
             pattern=r"^(exercise_timer_|circuit_rest_|exercise_rest_|rest_|exercise_done|set_done|prev_exercise|next_exercise|finish_workout)"
         ))
-
-        application.add_handler(CallbackQueryHandler(
-            self.handle_reminder_callback,
-            pattern=r"^reminder_"
-        ))
-
-        application.add_handler(CallbackQueryHandler(
-            self.handle_progress_callback,
-            pattern=r"^(progress_weekly|progress_monthly|achievements|workout_history|intensity_analysis|back_to_dashboard)$"
-        ))
-
-        logger.info("All handlers registered successfully")
+        application.add_handler(CallbackQueryHandler(self.handle_reminder_callback, pattern=r"^reminder_"))
+        application.add_handler(CallbackQueryHandler(self.handle_progress_callback, pattern=r"^(progress_weekly|progress_monthly|achievements|workout_history|intensity_analysis|back_to_dashboard)$"))
+        application.add_handler(CallbackQueryHandler(self.handle_muscle_group_selection, pattern=r"^muscle_"))
 
 
     async def cancel_profile(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1272,11 +1271,11 @@ class BotHandlers:
         )
         return ConversationHandler.END
 
-    async def help_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def help(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle the /help command"""
         await update.message.reply_text(messages.HELP_MESSAGE)
 
-    async def handle_feedback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def handle_workout_feedback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle workout feedback"""
         query = update.callback_query
         await query.answer()

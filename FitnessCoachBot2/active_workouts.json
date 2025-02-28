@@ -1,0 +1,21 @@
+{
+  "413662602": {
+    "workout_id": "workout_20250224_111132",
+    "exercises": [
+      {
+        "name": "Жим штанги лежа",
+        "target_muscle": "Грудь",
+        "difficulty": "средний",
+        "gif_url": "https://media1.tenor.com/m/3aUtiaBuDSgAAAAC/pilates-is-essential-for-lower-back-pain-relief.gif",
+        "reps": 13,
+        "sets_rest": 45
+      }
+    ],
+    "total_exercises": 1,
+    "current_exercise": 0,
+    "current_circuit": 1,
+    "equipment": "зал",
+    "level": "advanced",
+    "goal": "musclegain"
+  }
+}

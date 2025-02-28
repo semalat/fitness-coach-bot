@@ -1,0 +1,25 @@
+{
+  "5311473961": {
+    "age": 12,
+    "height": 178,
+    "weight": 65.0,
+    "sex": "Мужской",
+    "goals": "Похудение",
+    "fitness_level": "Начинающий",
+    "equipment": "Только вес тела",
+    "telegram_handle": "chirov_gi",
+    "last_updated": "2025-02-23 16:17:52",
+    "last_workout_id": "workout_20250223_142637"
+  },
+  "1789243667": {
+    "age": 19,
+    "height": 174,
+    "weight": 67.0,
+    "sex": "Женский",
+    "goals": "Общая физическая подготовка",
+    "fitness_level": "Средний",
+    "equipment": "Только вес тела",
+    "telegram_handle": "ver_r_ra_pod",
+    "last_updated": "2025-02-23 11:18:14"
+  }
+}

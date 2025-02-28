@@ -1,0 +1,241 @@
+fitness_level,fitness_goals,name,target_muscle,difficulty,equipment,gif,time,reps,circuits,circuits_rest,exercises_rest,weight
+beginner,weightloss,Берпи без прыжка,все тело,Средний,Нет,https://media1.tenor.com/m/HVa3Wh0CD8YAAAAd/funny-burpees.gif,30,,2,300,30,
+beginner,weightloss,Jumping Jacks,все тело,Начальный,Нет,https://media1.tenor.com/m/9YRh0wV0VosAAAAd/exercise-workout.gif,45,,2,300,30,
+beginner,weightloss,Альпинист,все тело,Средний,Нет,https://media1.tenor.com/m/BZcd0o7ssi4AAAAC/гимнастика-разминка.gif,20,,2,300,30,
+beginner,weightloss,Выпады вперед,Ноги,Начальный,Нет,https://media1.tenor.com/m/PF7Q7Qu1wJEAAAAC/lunges.gif,,10 на каждую,2,300,30,
+beginner,weightloss,Скручивания с поднятыми ногами,Пресс,Продвинутый,Нет,https://avatars.dzeninfra.ru/get-zen_doc/3956291/pub_5f89a8445282a978278e68fd_5f89a8bd4ab7c3765a893d8f/orig,,12,2,300,30,
+beginner,weightloss,Ягодичный мостик,"задняя поверхность бедра, ягодицы",Начальный,Нет,https://media1.tenor.com/m/3aUtiaBuDSgAAAAC/pilates-is-essential-for-lower-back-pain-relief.gif,,12,2,300,30,
+beginner,weightloss,Ножницы,Пресс,Средний,Нет,https://avatars.mds.yandex.net/get-pdb/1004345/1f718112-ebdf-430e-b54e-999e8dbf948f/orig,15,,2,300,30,
+beginner,weightloss,Планка,Пресс,Средний,Нет,https://media1.tenor.com/m/Ww5Ytjlx4QwAAAAC/prancha-treino-mestre.gif,30,,2,300,30,
+beginner,weightloss,Лодочка,Спина,Начальный,Нет,https://media1.tenor.com/m/BpWq8HxUxeAAAAAC/lumbaresms.gif,,10,2,300,30,
+beginner,weightloss,Прыжки с приседом,Ноги,Средний,Нет,https://media1.tenor.com/m/67z7_qwcWTQAAAAd/jumps-legs-work-out.gif,20,,2,300,30,
+beginner,weightloss,Бег с высоким подниманием бедра на месте,все тело,Начальный,Нет,https://media1.tenor.com/m/i4lmd-dNA5sAAAAC/knees.gif,12,,2,300,30,
+beginner,weightloss,Прыжки в сторону,все тело,Средний,Нет,https://i.pinimg.com/originals/34/f3/10/34f31056b0548173f8f97fbdbf418e86.gif,20,,2,300,30,
+intermediate,weightloss,Берпи с прыжком,все тело,Средний,Нет,https://media1.tenor.com/m/NDqoNHRDhX4AAAAd/burpees-legs-day.gif,30,,3,180,20,
+intermediate,weightloss,Jumping Jacks,все тело,Начальный,Нет,https://media1.tenor.com/m/9YRh0wV0VosAAAAd/exercise-workout.gif,60,,3,180,20,
+intermediate,weightloss,Альпинист,все тело,Средний,Нет,https://media1.tenor.com/m/BZcd0o7ssi4AAAAC/гимнастика-разминка.gif,25,,3,180,20,
+intermediate,weightloss,Выпады вперед,Ноги,Начальный,Нет,https://media1.tenor.com/m/PF7Q7Qu1wJEAAAAC/lunges.gif,,12 на каждую,3,180,20,
+intermediate,weightloss,Скручивания с поднятыми ногами,Пресс,Продвинутый,Нет,https://avatars.dzeninfra.ru/get-zen_doc/3956291/pub_5f89a8445282a978278e68fd_5f89a8bd4ab7c3765a893d8f/orig,,15,3,180,20,
+intermediate,weightloss,Ягодичный мостик,"задняя поверхность бедра, ягодицы",Начальный,Нет,https://media1.tenor.com/m/3aUtiaBuDSgAAAAC/pilates-is-essential-for-lower-back-pain-relief.gif,,15,3,180,20,
+intermediate,weightloss,Ножницы,Пресс,Средний,Нет,https://avatars.mds.yandex.net/get-pdb/1004345/1f718112-ebdf-430e-b54e-999e8dbf948f/orig,20,,3,180,20,
+intermediate,weightloss,Планка,Пресс,Средний,Нет,https://media1.tenor.com/m/Ww5Ytjlx4QwAAAAC/prancha-treino-mestre.gif,45,,3,180,20,
+intermediate,weightloss,Лодочка,Спина,Начальный,Нет,https://media1.tenor.com/m/BpWq8HxUxeAAAAAC/lumbaresms.gif,,12,3,180,20,
+intermediate,weightloss,Прыжки с приседом,Ноги,Средний,Нет,https://media1.tenor.com/m/67z7_qwcWTQAAAAd/jumps-legs-work-out.gif,25,,3,180,20,
+intermediate,weightloss,Бег с высоким подниманием бедра на месте,все тело,Начальный,Нет,https://media1.tenor.com/m/i4lmd-dNA5sAAAAC/knees.gif,15,,3,180,20,
+intermediate,weightloss,Прыжки в сторону,все тело,Средний,Нет,https://i.pinimg.com/originals/34/f3/10/34f31056b0548173f8f97fbdbf418e86.gif,25,,3,180,20,
+advanced,weightloss,Берпи с прыжком и отжиманием,все тело,Средний,Нет,https://media1.tenor.com/m/u2-VJiigKCkAAAAC/exercise-jump.gif,30,,3,120,10,
+advanced,weightloss,Jumping Jacks,все тело,Начальный,Нет,https://media1.tenor.com/m/9YRh0wV0VosAAAAd/exercise-workout.gif,60,,3,120,10,
+advanced,weightloss,Альпинист,все тело,Средний,Нет,https://media1.tenor.com/m/BZcd0o7ssi4AAAAC/гимнастика-разминка.gif,30,,3,120,10,
+advanced,weightloss,Выпады в прыжке,Ноги,Продвинутый,Нет,https://media1.tenor.com/m/Pwu67wJ3bR4AAAAC/jump-lunges.gif,,15 на каждую,3,120,10,
+advanced,weightloss,Скручивания с поднятыми ногами,Пресс,Продвинутый,Нет,https://avatars.dzeninfra.ru/get-zen_doc/3956291/pub_5f89a8445282a978278e68fd_5f89a8bd4ab7c3765a893d8f/orig,,20,3,120,10,
+advanced,weightloss,Ягодичный мостик,ягодицы,Начальный,Нет,https://media1.tenor.com/m/3aUtiaBuDSgAAAAC/pilates-is-essential-for-lower-back-pain-relief.gif,,20,3,120,10,
+advanced,weightloss,Ножницы,Пресс,Средний,Нет,https://avatars.mds.yandex.net/get-pdb/1004345/1f718112-ebdf-430e-b54e-999e8dbf948f/orig,30,,3,120,10,
+advanced,weightloss,Планка,Пресс,Средний,Нет,https://media1.tenor.com/m/Ww5Ytjlx4QwAAAAC/prancha-treino-mestre.gif,60,,3,120,10,
+advanced,weightloss,Лодочка,Спина,Начальный,Нет,https://media1.tenor.com/m/BpWq8HxUxeAAAAAC/lumbaresms.gif,,15,3,120,10,
+advanced,weightloss,Прыжки с приседом,Ноги,Средний,Нет,https://media1.tenor.com/m/67z7_qwcWTQAAAAd/jumps-legs-work-out.gif,30,,3,120,10,
+advanced,weightloss,Бег с высоким подниманием бедра на месте,все тело,Начальный,Нет,https://media1.tenor.com/m/i4lmd-dNA5sAAAAC/knees.gif,20,,3,120,10,
+advanced,weightloss,Прыжки в сторону,все тело,Средний,Нет,https://i.pinimg.com/originals/34/f3/10/34f31056b0548173f8f97fbdbf418e86.gif,30,,3,120,10,
+beginner,musclegain,Бег с высоким подниманием бедра на месте,все тело,Начальный,Нет,https://media1.tenor.com/m/i4lmd-dNA5sAAAAC/knees.gif,15,,2,300,30,
+beginner,musclegain,Берпи без прыжка,все тело,Средний,Нет,https://media1.tenor.com/m/HVa3Wh0CD8YAAAAd/funny-burpees.gif,30,,2,300,30,
+beginner,musclegain,Альпинист,все тело,Средний,Нет,https://media1.tenor.com/m/BZcd0o7ssi4AAAAC/гимнастика-разминка.gif,20,,2,300,30,
+beginner,musclegain,Приседания с выпадом,Ноги,Продвинутый,Нет,https://media1.tenor.com/m/zWztKrQHNg0AAAAd/утренняязарядка-еленасилка.gif,,8 на каждую,2,300,30,
+beginner,musclegain,Подъем на икроножных мышцах,Ноги,Средний,Нет,https://media1.tenor.com/m/zJk03-z7WI4AAAAd/calf-raise-workout.gif,,15,2,300,30,
+beginner,musclegain,Выпады назад с прыжком,Ноги,Продвинутый,Нет,https://media1.tenor.com/m/xIcCauHJHgYAAAAC/afundo.gif,,8 на каждую,2,300,30,
+beginner,musclegain,Отжимания с колен,Плечи,Средний,Нет,https://media1.tenor.com/m/kE-XuF8T3GkAAAAC/knees-pushup.gif,,10,2,300,30,
+beginner,musclegain,Обратные отжимания,Плечи,Средний,Другое,https://image.posta.com.tr/i/posta/75/750x0/6196106545d2a07ffcafe682.jpg,,10,2,300,30,
+beginner,musclegain,Ножницы,Пресс,Средний,Нет,https://avatars.mds.yandex.net/get-pdb/1004345/1f718112-ebdf-430e-b54e-999e8dbf948f/orig,15,,2,300,30,
+beginner,musclegain,Перекрестные скручивания,Пресс,Средний,Нет,https://avatars.mds.yandex.net/i?id=5f56969fb873aefee1ec8b8f189e2afd40dc3052-6450036-images-thumbs&n=13,,15,2,300,30,
+beginner,musclegain,Планка с вытягиванием рук,Пресс,Средний,Нет,https://i.pinimg.com/originals/01/28/2b/01282b221aeab9061cd1bf56101deb98.gif,20,,2,300,30,
+beginner,musclegain,Лодочка,Спина,Начальный,Нет,https://media1.tenor.com/m/BpWq8HxUxeAAAAAC/lumbaresms.gif,,10,2,300,30,
+beginner,musclegain,Поза ребенка,все тело,Начальный,Нет,https://media1.tenor.com/m/mn7vHmeSBVIAAAAC/namaste-meditate.gif,30,,2,300,30,
+intermediate,musclegain,Бег с высоким подниманием бедра на месте,все тело,Начальный,Нет,https://media1.tenor.com/m/i4lmd-dNA5sAAAAC/knees.gif,20,,2,180,20,
+intermediate,musclegain,Берпи с прыжком,все тело,Средний,Нет,https://media1.tenor.com/m/NDqoNHRDhX4AAAAd/burpees-legs-day.gif,30,,2,180,20,
+intermediate,musclegain,Альпинист,все тело,Средний,Нет,https://media1.tenor.com/m/BZcd0o7ssi4AAAAC/гимнастика-разминка.gif,25,,2,180,20,
+intermediate,musclegain,Приседания с выпадом,Ноги,Продвинутый,Нет,https://media1.tenor.com/m/zWztKrQHNg0AAAAd/утренняязарядка-еленасилка.gif,,10 на каждую,2,180,20,
+intermediate,musclegain,Подъем на икроножных мышцах,Ноги,Средний,Нет,https://media1.tenor.com/m/zJk03-z7WI4AAAAd/calf-raise-workout.gif,,20,2,180,20,
+intermediate,musclegain,Выпады назад с прыжком,Ноги,Продвинутый,Нет,https://media1.tenor.com/m/xIcCauHJHgYAAAAC/afundo.gif,,10 на каждую,2,180,20,
+intermediate,musclegain,Отжимания,Плечи,Средний,Нет,https://media1.tenor.com/m/W83bPDWTkawAAAAC/pushup-body-weight-training.gif,,10,2,180,20,
+intermediate,musclegain,Обратные отжимания,Плечи,Средний,Другое,https://image.posta.com.tr/i/posta/75/750x0/6196106545d2a07ffcafe682.jpg,,12,2,180,20,
+intermediate,musclegain,Ножницы,Пресс,Средний,Нет,https://avatars.mds.yandex.net/get-pdb/1004345/1f718112-ebdf-430e-b54e-999e8dbf948f/orig,20,,2,180,20,
+intermediate,musclegain,Перекрестные скручивания,Пресс,Средний,Нет,https://avatars.mds.yandex.net/i?id=5f56969fb873aefee1ec8b8f189e2afd40dc3052-6450036-images-thumbs&n=13,,20,2,180,20,
+intermediate,musclegain,Планка с вытягиванием рук,Пресс,Средний,Нет,https://i.pinimg.com/originals/01/28/2b/01282b221aeab9061cd1bf56101deb98.gif,30,,2,180,20,
+intermediate,musclegain,Лодочка,Спина,Начальный,Нет,https://media1.tenor.com/m/BpWq8HxUxeAAAAAC/lumbaresms.gif,,12,2,180,20,
+intermediate,musclegain,Поза ребенка,все тело,Начальный,Нет,https://media1.tenor.com/m/mn7vHmeSBVIAAAAC/namaste-meditate.gif,30,,2,180,20,
+advanced,musclegain,Бег с высоким подниманием бедра на месте,все тело,Начальный,Нет,https://media1.tenor.com/m/i4lmd-dNA5sAAAAC/knees.gif,20,,3,180,10,
+advanced,musclegain,Берпи с прыжком и отжиманием,все тело,Средний,Нет,https://media1.tenor.com/m/u2-VJiigKCkAAAAC/exercise-jump.gif,30,,3,180,10,
+advanced,musclegain,Альпинист,все тело,Средний,Нет,https://media1.tenor.com/m/BZcd0o7ssi4AAAAC/гимнастика-разминка.gif,30,,3,180,10,
+advanced,musclegain,Приседания с выпадом,Ноги,Продвинутый,Нет,https://media1.tenor.com/m/zWztKrQHNg0AAAAd/утренняязарядка-еленасилка.gif,,12 на каждую,3,180,10,
+advanced,musclegain,Подъем на икроножных мышцах,Ноги,Средний,Нет,https://media1.tenor.com/m/zJk03-z7WI4AAAAd/calf-raise-workout.gif,,25,3,180,10,
+advanced,musclegain,Выпады назад с прыжком,Ноги,Продвинутый,Нет,https://media1.tenor.com/m/xIcCauHJHgYAAAAC/afundo.gif,,12 на каждую,3,180,10,
+advanced,musclegain,Отжимания,Плечи,Средний,Нет,https://media1.tenor.com/m/W83bPDWTkawAAAAC/pushup-body-weight-training.gif,,15,3,180,10,
+advanced,musclegain,Обратные отжимания,Плечи,Средний,Другое,https://image.posta.com.tr/i/posta/75/750x0/6196106545d2a07ffcafe682.jpg,,15,3,180,10,
+advanced,musclegain,Ножницы,Пресс,Средний,Нет,https://avatars.mds.yandex.net/get-pdb/1004345/1f718112-ebdf-430e-b54e-999e8dbf948f/orig,25,,3,180,10,
+advanced,musclegain,Перекрестные скручивания,Пресс,Средний,Нет,https://avatars.mds.yandex.net/i?id=5f56969fb873aefee1ec8b8f189e2afd40dc3052-6450036-images-thumbs&n=13,,30,3,180,10,
+advanced,musclegain,Планка с вытягиванием рук,Пресс,Средний,Нет,https://i.pinimg.com/originals/01/28/2b/01282b221aeab9061cd1bf56101deb98.gif,40,,3,180,10,
+advanced,musclegain,Лодочка,Спина,Начальный,Нет,https://media1.tenor.com/m/BpWq8HxUxeAAAAAC/lumbaresms.gif,,15,3,180,10,
+advanced,musclegain,Поза ребенка,все тело,Начальный,Нет,https://media1.tenor.com/m/mn7vHmeSBVIAAAAC/namaste-meditate.gif,30,,3,180,10,
+beginner,weightloss,Легкое кардио: беговая дорожка на низкой скорости / элипсоид / велотренажер,Кардио,,gym,,720,,,,,
+beginner,weightloss,Жим гантелей на наклонной скамьей,Грудь,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/mtRNUBI80B95NCgP-incline-dumbell-press.gif,,20,3,60,,3
+beginner,weightloss,Отжимания от пола,Грудь,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/JJ1BWht6cbvATAYh-4-1-4.gif,,10,3,60,,
+beginner,weightloss,Тяга верхнего блока,Спина,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/cZDHue1ycmFg4S6h-16-1-2.gif,,10,3,60,,25
+beginner,weightloss,Тяга среднего блока,Спина,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/GWtvzgiwJBuDQmS0-16-1-1.gif,,10,3,60,,10
+beginner,weightloss,Жим гантелей над головой сидя / стоя,Плечи,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/jWOCSF7Dw9SvYfMj-6-2-3.gif,,20,3,60,,3
+beginner,weightloss,Поднятие гантелей на бицепс стоя,Бицепс,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/KB2R7fAERVGRjjKI-3-1-4.gif,,20,3,60,,3
+beginner,weightloss,Приседания с выпрыгиваниями,Квадрицепсы,,gym,https://www.google.com/url?sa=i&url=https%3A%2F%2Fmobez.ru%2Ffoto%2Fprisedaniya-s-viypriygivaniem.html&psig=AOvVaw1Mm-9FwnSP3R3q5mE8OPZx&ust=1740145593986000&source=images&cd=vfe&opi=89978449&ved=0CBMQjRxqFwoTCOik9tix0osDFQAAAAAdAAAAABAJ,,10,3,60,,
+beginner,weightloss,Экстензия на квадрицепсы,Квадрицепсы,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/ilTG6pXrcdT6yerW-11-1-5.gif,,10,3,60,,
+beginner,weightloss,Тяга верхнего блока на трицепс вниз,Трицепс,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/Bu4UxH9bwkXjSVbD-1-4-2.gif,,10,3,60,,
+beginner,weightloss,Экстензия на задние сидя / лежа,"задняя поверхность бедра, ягодицы",,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/4vM8OQhuGdBLU9b9-13-2-2sidia.gif,,10,3,60,,
+beginner,weightloss,Подъемы корпуса на полу (с блином),Пресс,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/WLvmn2M38GCN3lYJ-7-1-3.gif,,10,3,60,,
+beginner,weightloss,Русские скручивания с утяжелителем (мяч / гантель),Пресс,,gym,https://www.google.com/url?sa=i&url=https%3A%2F%2Fgoodlooker.ru%2Fuprazheniya-na-press.html&psig=AOvVaw2B0LHpeZs6JEDpeU_Yby1e&ust=1740146591571000&source=images&cd=vfe&opi=89978449&ved=0CBMQjRxqFwoTCOC9lK610osDFQAAAAAdAAAAABAE,,10,3,60,,
+beginner,weightloss,Легкое кардио: беговая дорожка на низкой скорости / элипсоид / велотренажер,Кардио,,gym,,720,,,,,
+intermediate,weightloss,Легкое кардио: беговая дорожка на низкой скорости / элипсоид / велотренажер,Кардио,,gym,,900,,,,,
+intermediate,weightloss,Жим гантелей на наклонной скамьей,Грудь,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/mtRNUBI80B95NCgP-incline-dumbell-press.gif,,20,3,60,,5
+intermediate,weightloss,Отжимания от пола,Грудь,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/JJ1BWht6cbvATAYh-4-1-4.gif,,15,3,60,,
+intermediate,weightloss,Тяга верхнего блока,Спина,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/cZDHue1ycmFg4S6h-16-1-2.gif,,15,3,60,,35
+intermediate,weightloss,Тяга среднего блока,Спина,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/GWtvzgiwJBuDQmS0-16-1-1.gif,,12,3,60,,20
+intermediate,weightloss,Жим гантелей над головой сидя / стоя,Плечи,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/jWOCSF7Dw9SvYfMj-6-2-3.gif,,20,3,60,,5
+intermediate,weightloss,Поднятие гантелей на бицепс стоя,Бицепс,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/KB2R7fAERVGRjjKI-3-1-4.gif,,20,3,60,,5
+intermediate,weightloss,Приседания с выпрыгиваниями,Квадрицепсы,,gym,https://www.google.com/url?sa=i&url=https%3A%2F%2Fmobez.ru%2Ffoto%2Fprisedaniya-s-viypriygivaniem.html&psig=AOvVaw1Mm-9FwnSP3R3q5mE8OPZx&ust=1740145593986000&source=images&cd=vfe&opi=89978449&ved=0CBMQjRxqFwoTCOik9tix0osDFQAAAAAdAAAAABAJ,,15,3,60,,
+intermediate,weightloss,Экстензия на квадрицепсы,Квадрицепсы,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/ilTG6pXrcdT6yerW-11-1-5.gif,,15,3,60,,
+intermediate,weightloss,Тяга верхнего блока на трицепс вниз,Трицепс,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/Bu4UxH9bwkXjSVbD-1-4-2.gif,,15,3,60,,
+intermediate,weightloss,Экстензия на задние сидя / лежа,"задняя поверхность бедра, ягодицы",,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/4vM8OQhuGdBLU9b9-13-2-2sidia.gif,,15,3,60,,
+intermediate,weightloss,Подъемы корпуса на полу (с блином),Пресс,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/WLvmn2M38GCN3lYJ-7-1-3.gif,,15,3,60,,
+intermediate,weightloss,Русские скручивания с утяжелителем (мяч / гантель),Пресс,,gym,https://www.google.com/url?sa=i&url=https%3A%2F%2Fgoodlooker.ru%2Fuprazheniya-na-press.html&psig=AOvVaw2B0LHpeZs6JEDpeU_Yby1e&ust=1740146591571000&source=images&cd=vfe&opi=89978449&ved=0CBMQjRxqFwoTCOC9lK610osDFQAAAAAdAAAAABAE,,15,3,60,,
+intermediate,weightloss,Легкое кардио: беговая дорожка на низкой скорости / элипсоид / велотренажер,Кардио,,gym,,900,,,,,
+advanced,weightloss,Легкое кардио: беговая дорожка на низкой скорости / элипсоид / велотренажер,Кардио,,gym,,1500,,,,,
+advanced,weightloss,Жим гантелей на наклонной скамьей,Грудь,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/mtRNUBI80B95NCgP-incline-dumbell-press.gif,,20,3,60,,10
+advanced,weightloss,Отжимания от пола,Грудь,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/JJ1BWht6cbvATAYh-4-1-4.gif,,25,3,60,,
+advanced,weightloss,Тяга верхнего блока,Спина,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/cZDHue1ycmFg4S6h-16-1-2.gif,,15,3,60,,50
+advanced,weightloss,Тяга среднего блока,Спина,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/GWtvzgiwJBuDQmS0-16-1-1.gif,,12,3,60,,40
+advanced,weightloss,Жим гантелей над головой сидя / стоя,Плечи,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/jWOCSF7Dw9SvYfMj-6-2-3.gif,,20,3,60,,10
+advanced,weightloss,Поднятие гантелей на бицепс стоя,Бицепс,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/KB2R7fAERVGRjjKI-3-1-4.gif,,20,3,60,,10
+advanced,weightloss,Приседания с выпрыгиваниями,Квадрицепсы,,gym,https://www.google.com/url?sa=i&url=https%3A%2F%2Fmobez.ru%2Ffoto%2Fprisedaniya-s-viypriygivaniem.html&psig=AOvVaw1Mm-9FwnSP3R3q5mE8OPZx&ust=1740145593986000&source=images&cd=vfe&opi=89978449&ved=0CBMQjRxqFwoTCOik9tix0osDFQAAAAAdAAAAABAJ,,20,3,60,,
+advanced,weightloss,Экстензия на квадрицепсы,Квадрицепсы,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/ilTG6pXrcdT6yerW-11-1-5.gif,,20,3,60,,
+advanced,weightloss,Тяга верхнего блока на трицепс вниз,Трицепс,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/Bu4UxH9bwkXjSVbD-1-4-2.gif,,15,3,60,,
+advanced,weightloss,Экстензия на задние сидя / лежа,"задняя поверхность бедра, ягодицы",,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/4vM8OQhuGdBLU9b9-13-2-2sidia.gif,,20,3,60,,
+advanced,weightloss,Подъемы корпуса на полу (с блином),Пресс,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/WLvmn2M38GCN3lYJ-7-1-3.gif,,20,3,60,,
+advanced,weightloss,Русские скручивания с утяжелителем (мяч / гантель),Пресс,,gym,https://www.google.com/url?sa=i&url=https%3A%2F%2Fgoodlooker.ru%2Fuprazheniya-na-press.html&psig=AOvVaw2B0LHpeZs6JEDpeU_Yby1e&ust=1740146591571000&source=images&cd=vfe&opi=89978449&ved=0CBMQjRxqFwoTCOC9lK610osDFQAAAAAdAAAAABAE,,20,3,60,,
+advanced,weightloss,Легкое кардио: беговая дорожка на низкой скорости / элипсоид / велотренажер,Кардио,,gym,,1500,,,,,
+beginner,musclegain,Легкое кардио: беговая дорожка на низкой скорости / элипсоид / велотренажер,Кардио,,gym,,300,,,,,
+beginner,musclegain,Жим штанги лежа,Грудь,,gym,https://www.google.com/url?sa=i&url=https%3A%2F%2Finstructorpro.ru%2Fgilotinnyj-zhim%2F&psig=AOvVaw1OCHU1dFzEwLa_mDKJ-v3_&ust=1740146668806000&source=images&cd=vfe&opi=89978449&ved=0CBMQjRxqFwoTCMi40NO10osDFQAAAAAdAAAAABAE,,10,3,60,,20-40
+beginner,musclegain,Кроссовер,Грудь,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/izlSfQfjv0zCsszJ-4-3-1.gif,,10,2,60,,10
+beginner,musclegain,Подтягивания (с утяжелением),Спина,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/1ILYXtNz80a6Pj6k-16-1-3.gif,,5,3,60,,0
+beginner,musclegain,Тяга среднего блока,Спина,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/GWtvzgiwJBuDQmS0-16-1-1.gif,,10,3,60,,10-20
+beginner,musclegain,Армейский жим (жим штанги стоя),Плечи,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/CgOIEIvAjTsTLI8H-6-1-1.gif,,6,3,60,,10-20
+beginner,musclegain,"Жим ногами (вес указан только дополнительный, без учета платформы)",Квадрицепсы,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/0KKmnZ4xK2v57e54-11-1-3.gif,,8,3,60,,50
+beginner,musclegain,Экстензия на квадрицепсы,Квадрицепсы,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/ilTG6pXrcdT6yerW-11-1-5.gif,,8,2,60,,30
+beginner,musclegain,Румынская тяга,"задняя поверхность бедра, ягодицы",,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/PhUNSY2IfUTO7i4L-13-1-1.gif,,8,3,60,,20-40
+beginner,musclegain,Экстензия на задние сидя / лежа,"задняя поверхность бедра, ягодицы",,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/4vM8OQhuGdBLU9b9-13-2-2sidia.gif,,8,2,60,,30
+beginner,musclegain,Тяга верхнего блока на трицепс вниз,Трицепс,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/Bu4UxH9bwkXjSVbD-1-4-2.gif,,8,2,60,,10
+beginner,musclegain,Поднятие штанги (прямой / ez) на бицепс стоя,Бицепс,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/1ehIp1r1YAquli22-2-2-1.gif,,8,2,60,,10-20
+beginner,musclegain,Подъемы корпуса на наклонной скамье (с блином),Пресс,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/WLvmn2M38GCN3lYJ-7-1-3.gif,,12,2,60,,0
+intermediate,musclegain,Легкое кардио: беговая дорожка на низкой скорости / элипсоид / велотренажер,Кардио,,gym,,300,,,60,,
+intermediate,musclegain,Жим штанги лежа,Грудь,,gym,https://www.google.com/url?sa=i&url=https%3A%2F%2Finstructorpro.ru%2Fgilotinnyj-zhim%2F&psig=AOvVaw1OCHU1dFzEwLa_mDKJ-v3_&ust=1740146668806000&source=images&cd=vfe&opi=89978449&ved=0CBMQjRxqFwoTCMi40NO10osDFQAAAAAdAAAAABAE,,8,4,60,,40-60
+intermediate,musclegain,Кроссовер,Грудь,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/izlSfQfjv0zCsszJ-4-3-1.gif,,8,3,60,,15-20
+intermediate,musclegain,Подтягивания (с утяжелением),Спина,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/1ILYXtNz80a6Pj6k-16-1-3.gif,,6,4,60,,0
+intermediate,musclegain,Тяга среднего блока,Спина,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/GWtvzgiwJBuDQmS0-16-1-1.gif,,8,3,60,,30-40
+intermediate,musclegain,Армейский жим (жим штанги стоя),Плечи,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/CgOIEIvAjTsTLI8H-6-1-1.gif,,6,3,60,,20-40
+intermediate,musclegain,"Жим ногами (вес указан только дополнительный, без учета платформы)",Квадрицепсы,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/0KKmnZ4xK2v57e54-11-1-3.gif,,8,3,60,,150
+intermediate,musclegain,Экстензия на квадрицепсы,Квадрицепсы,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/ilTG6pXrcdT6yerW-11-1-5.gif,,8,2,60,,40-50
+intermediate,musclegain,Румынская тяга,"задняя поверхность бедра, ягодицы",,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/PhUNSY2IfUTO7i4L-13-1-1.gif,,8,3,60,,40-60
+intermediate,musclegain,Экстензия на задние сидя / лежа,"задняя поверхность бедра, ягодицы",,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/4vM8OQhuGdBLU9b9-13-2-2sidia.gif,,8,2,60,,40-50
+intermediate,musclegain,Тяга верхнего блока на трицепс вниз,Спина,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/Bu4UxH9bwkXjSVbD-1-4-2.gif,,8,2,60,,15-20
+intermediate,musclegain,Поднятие штанги (прямой / ez) на бицепс стоя,Бицепс,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/1ehIp1r1YAquli22-2-2-1.gif,,8,2,60,,20-30
+intermediate,musclegain,Подъемы корпуса на наклонной скамье (с блином),Пресс,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/WLvmn2M38GCN3lYJ-7-1-3.gif,,15,2,60,,5
+advanced,musclegain,Легкое кардио: беговая дорожка на низкой скорости / элипсоид / велотренажер,Кардио,,gym,,300,,,,,
+advanced,musclegain,Жим штанги лежа,Грудь,,gym,https://www.google.com/url?sa=i&url=https%3A%2F%2Finstructorpro.ru%2Fgilotinnyj-zhim%2F&psig=AOvVaw1OCHU1dFzEwLa_mDKJ-v3_&ust=1740146668806000&source=images&cd=vfe&opi=89978449&ved=0CBMQjRxqFwoTCMi40NO10osDFQAAAAAdAAAAABAE,,8,4,60,,60-8-
+advanced,musclegain,Кроссовер,Грудь,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/izlSfQfjv0zCsszJ-4-3-1.gif,,8,3,60,,30
+advanced,musclegain,Подтягивания (с утяжелением),Спина,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/1ILYXtNz80a6Pj6k-16-1-3.gif,,6,4,60,,10
+advanced,musclegain,Тяга среднего блока,Спина,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/GWtvzgiwJBuDQmS0-16-1-1.gif,,8,3,60,,50
+advanced,musclegain,Армейский жим (жим штанги стоя),Плечи,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/CgOIEIvAjTsTLI8H-6-1-1.gif,,8,3,60,,40-50
+advanced,musclegain,"Жим ногами (вес указан только дополнительный, без учета платформы)",Квадрицепсы,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/0KKmnZ4xK2v57e54-11-1-3.gif,,8,3,60,,250
+advanced,musclegain,Экстензия на квадрицепсы,Квадрицепсы,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/ilTG6pXrcdT6yerW-11-1-5.gif,,8,2,60,,50-60
+advanced,musclegain,Румынская тяга,"задняя поверхность бедра, ягодицы",,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/PhUNSY2IfUTO7i4L-13-1-1.gif,,8,3,60,,60-80
+advanced,musclegain,Экстензия на задние сидя / лежа,"задняя поверхность бедра, ягодицы",,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/4vM8OQhuGdBLU9b9-13-2-2sidia.gif,,8,2,60,,50-60
+advanced,musclegain,Тяга верхнего блока на трицепс вниз,Трицепс,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/Bu4UxH9bwkXjSVbD-1-4-2.gif,,8,3,60,,20-30
+advanced,musclegain,Поднятие штанги (прямой / ez) на бицепс стоя,Бицепс,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/1ehIp1r1YAquli22-2-2-1.gif,,8,3,60,,30-50
+advanced,musclegain,Подъемы корпуса на наклонной скамье (с блином),Пресс,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/WLvmn2M38GCN3lYJ-7-1-3.gif,,20,2,60,,5-10
+beginner,strength,Jumping Jacks,все тело,Начальный,Нет,https://media1.tenor.com/m/9YRh0wV0VosAAAAd/exercise-workout.gif,45,,2,300,30,
+beginner,strength,Берпи без прыжка,все тело,Средний,Нет,https://media1.tenor.com/m/HVa3Wh0CD8YAAAAd/funny-burpees.gif,30,,2,300,30,
+beginner,strength,Перекрестные выпады,Ноги,Средний,Нет,https://media1.tenor.com/m/NBJcw4_aS7gAAAAC/cuadricepsms.gif,,12,2,300,30,
+beginner,strength,Ягодичный мостик,ягодицы,Начальный,Нет,https://media1.tenor.com/m/3aUtiaBuDSgAAAAC/pilates-is-essential-for-lower-back-pain-relief.gif,,12,2,300,30,
+beginner,strength,Russian twists,Пресс,Средний,Нет,https://media1.tenor.com/m/6if10XBukOYAAAAC/gemma-atkinson-celebrity.gif,,15,2,300,30,
+beginner,strength,Отжимания с колен,Плечи,Средний,Нет,https://media1.tenor.com/m/kE-XuF8T3GkAAAAC/knees-pushup.gif,,10,2,300,30,
+beginner,strength,Планка с подтягиванием коленей к локтям,Пресс,Средний,Нет,https://media1.tenor.com/m/HiN8sMGWuO4AAAAC/abd.gif,25,,2,300,30,
+beginner,strength,Подъемы прямых ног,Пресс,Продвинутый,Нет,https://i.pinimg.com/originals/12/08/b1/1208b1c9fc77e1c6da860f0eeecb472e.gif,,7,2,300,30,
+beginner,strength,Лодочка,Спина,Начальный,Нет,https://media1.tenor.com/m/BpWq8HxUxeAAAAAC/lumbaresms.gif,,10,2,300,30,
+beginner,strength,Боковая планка,Пресс,Средний,Нет,https://media1.tenor.com/m/QSvhLjzJiekAAAAC/prancha-lateral-treino-mestre.gif,20 на каждую,,2,300,30,
+beginner,strength,Подъем на икроножных мышцах,Ноги,Средний,Нет,https://media1.tenor.com/m/zJk03-z7WI4AAAAd/calf-raise-workout.gif,,15,2,300,30,
+beginner,strength,Бег с высоким подниманием бедра на месте,все тело,Начальный,Нет,https://media1.tenor.com/m/i4lmd-dNA5sAAAAC/knees.gif,12,,2,300,30,
+beginner,strength,Кошка-корова,Спина,Начальный,Нет,https://i.gifer.com/origin/c4/c4d190a4c01eb52becd1ae5b1d05836e.gif,,10,2,300,30,
+beginner,strength,Поза ребенка,все тело,Начальный,Нет,https://media1.tenor.com/m/mn7vHmeSBVIAAAAC/namaste-meditate.gif,30,,2,300,30,
+intermediate,strength,Jumping Jacks,все тело,Начальный,Нет,https://media1.tenor.com/m/9YRh0wV0VosAAAAd/exercise-workout.gif,60,,2,240,20,
+intermediate,strength,Берпи с прыжком,все тело,Средний,Нет,https://media1.tenor.com/m/NDqoNHRDhX4AAAAd/burpees-legs-day.gif,30,,2,240,20,
+intermediate,strength,Перекрестные выпады,Ноги,Средний,Нет,https://media1.tenor.com/m/NBJcw4_aS7gAAAAC/cuadricepsms.gif,,15,2,240,20,
+intermediate,strength,Ягодичный мостик,ягодицы,Начальный,Нет,https://media1.tenor.com/m/3aUtiaBuDSgAAAAC/pilates-is-essential-for-lower-back-pain-relief.gif,,15,2,240,20,
+intermediate,strength,Russian twists,Пресс,Средний,Нет,https://media1.tenor.com/m/6if10XBukOYAAAAC/gemma-atkinson-celebrity.gif,,20,2,240,20,
+intermediate,strength,Отжимания,Плечи,Средний,Нет,https://media1.tenor.com/m/W83bPDWTkawAAAAC/pushup-body-weight-training.gif,,10,2,240,20,
+intermediate,strength,Планка с подтягиванием коленей к локтям,Пресс,Средний,Нет,https://media1.tenor.com/m/HiN8sMGWuO4AAAAC/abd.gif,35,,2,240,20,
+intermediate,strength,Подъемы прямых ног,Пресс,Продвинутый,Нет,https://i.pinimg.com/originals/12/08/b1/1208b1c9fc77e1c6da860f0eeecb472e.gif,,10,2,240,20,
+intermediate,strength,Лодочка,Спина,Начальный,Нет,https://media1.tenor.com/m/BpWq8HxUxeAAAAAC/lumbaresms.gif,,12,2,240,20,
+intermediate,strength,Боковая планка,Пресс,Средний,Нет,https://media1.tenor.com/m/QSvhLjzJiekAAAAC/prancha-lateral-treino-mestre.gif,25 на каждую,,2,240,20,
+intermediate,strength,Подъем на икроножных мышцах,Ноги,Средний,Нет,https://media1.tenor.com/m/zJk03-z7WI4AAAAd/calf-raise-workout.gif,,20,2,240,20,
+intermediate,strength,Бег с высоким подниманием бедра на месте,все тело,Начальный,Нет,https://media1.tenor.com/m/i4lmd-dNA5sAAAAC/knees.gif,15,,2,240,20,
+intermediate,strength,Кошка-корова,Спина,Начальный,Нет,https://i.gifer.com/origin/c4/c4d190a4c01eb52becd1ae5b1d05836e.gif,,12,2,240,20,
+intermediate,strength,Поза ребенка,все тело,Начальный,Нет,https://media1.tenor.com/m/mn7vHmeSBVIAAAAC/namaste-meditate.gif,30,,2,240,20,
+advanced,strength,Jumping Jacks,все тело,Начальный,Нет,https://media1.tenor.com/m/9YRh0wV0VosAAAAd/exercise-workout.gif,60,,3,180,15,
+advanced,strength,Берпи с прыжком и отжиманием,все тело,Средний,Нет,https://media1.tenor.com/m/u2-VJiigKCkAAAAC/exercise-jump.gif,30,,3,180,15,
+advanced,strength,Перекрестные выпады,Ноги,Средний,Нет,https://media1.tenor.com/m/NBJcw4_aS7gAAAAC/cuadricepsms.gif,,15,3,180,15,
+advanced,strength,Ягодичный мостик,ягодицы,Начальный,Нет,https://media1.tenor.com/m/3aUtiaBuDSgAAAAC/pilates-is-essential-for-lower-back-pain-relief.gif,,20,3,180,15,
+advanced,strength,Russian twists,Пресс,Средний,Нет,https://media1.tenor.com/m/6if10XBukOYAAAAC/gemma-atkinson-celebrity.gif,,25,3,180,15,
+advanced,strength,Отжимания,Плечи,Средний,Нет,https://media1.tenor.com/m/W83bPDWTkawAAAAC/pushup-body-weight-training.gif,,15,3,180,15,
+advanced,strength,Планка с подтягиванием коленей к локтям,Пресс,Средний,Нет,https://media1.tenor.com/m/HiN8sMGWuO4AAAAC/abd.gif,60,,3,180,15,
+advanced,strength,Подъемы прямых ног,Пресс,Продвинутый,Нет,https://i.pinimg.com/originals/12/08/b1/1208b1c9fc77e1c6da860f0eeecb472e.gif,,15,3,180,15,
+advanced,strength,Лодочка,Спина,Начальный,Нет,https://media1.tenor.com/m/BpWq8HxUxeAAAAAC/lumbaresms.gif,,15,3,180,15,
+advanced,strength,Боковая планка,Пресс,Средний,Нет,https://media1.tenor.com/m/QSvhLjzJiekAAAAC/prancha-lateral-treino-mestre.gif,30 на каждую,,3,180,15,
+advanced,strength,Подъем на икроножных мышцах,Ноги,Средний,Нет,https://media1.tenor.com/m/zJk03-z7WI4AAAAd/calf-raise-workout.gif,,25,3,180,15,
+advanced,strength,Бег с высоким подниманием бедра на месте,все тело,Начальный,Нет,https://media1.tenor.com/m/i4lmd-dNA5sAAAAC/knees.gif,20,,3,180,15,
+advanced,strength,Кошка-корова,Спина,Начальный,Нет,https://i.gifer.com/origin/c4/c4d190a4c01eb52becd1ae5b1d05836e.gif,,15,3,180,15,
+advanced,strength,Поза ребенка,все тело,Начальный,Нет,https://media1.tenor.com/m/mn7vHmeSBVIAAAAC/namaste-meditate.gif,30,,3,180,15,
+beginner,strength,Легкое кардио: беговая дорожка на низкой скорости / элипсоид / велотренажер,Кардио,,gym,,360,,,,,
+beginner,strength,Жим штанги лежа,Грудь,,gym,https://www.google.com/url?sa=i&url=https%3A%2F%2Finstructorpro.ru%2Fgilotinnyj-zhim%2F&psig=AOvVaw1OCHU1dFzEwLa_mDKJ-v3_&ust=1740146668806000&source=images&cd=vfe&opi=89978449&ved=0CBMQjRxqFwoTCMi40NO10osDFQAAAAAdAAAAABAE,,10,3,60,,20-40
+beginner,strength,Отжимания классические,Грудь,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/JJ1BWht6cbvATAYh-4-1-4.gif,,10,3,60,,
+beginner,strength,Подтягивания со своим весом,Спина,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/1ILYXtNz80a6Pj6k-16-1-3.gif,,4,3,60,,
+beginner,strength,Тяга среднего блока,Спина,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/GWtvzgiwJBuDQmS0-16-1-1.gif,,8,2,60,,10-20
+beginner,strength,Жим гантелей над головой сидя / стоя,Плечи,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/jWOCSF7Dw9SvYfMj-6-2-3.gif,,10,3,60,,5-10
+beginner,strength,"Приседания в тренажере (вес указан только дополнительный, без учета платформы)",Квадрицепсы,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/o4EeavoC9GJVwppI-11-1-4.gif,,8,3,60,,50
+beginner,strength,Экстензия на квадрицепсы,Квадрицепсы,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/ilTG6pXrcdT6yerW-11-1-5.gif,,8,2,60,,30
+beginner,strength,Гиперэкстензия (с блином),"задняя поверхность бедра, ягодицы",,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/hoRs4YFK27FIqjjQ-16-1-5.gif,,8,2,60,,0
+beginner,strength,Румынская тяга,"задняя поверхность бедра, ягодицы",,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/PhUNSY2IfUTO7i4L-13-1-1.gif,,8,3,60,,20
+beginner,strength,Поднятие штанги (прямой / ez) на бицепс стоя,Бицепс,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/1ehIp1r1YAquli22-2-2-1.gif,,8,2,60,,10-20
+beginner,strength,Тяга верхнего блока на трицепс вниз,Трицепс,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/Bu4UxH9bwkXjSVbD-1-4-2.gif,,8,2,60,,10
+beginner,strength,Подъемы корпуса на наклонной скамье (с блином),Пресс,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/WLvmn2M38GCN3lYJ-7-1-3.gif,,12,2,60,,0
+beginner,strength,Суперсет на шею: ,Шея,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/yZLX7VQWL0KUyKog-10-1-2.gif,,12,2,60,,0
+intermediate,strength,Легкое кардио: беговая дорожка на низкой скорости / элипсоид / велотренажер,Кардио,,gym,,600,,,,,
+intermediate,strength,Жим штанги лежа,Грудь,,gym,https://www.google.com/url?sa=i&url=https%3A%2F%2Finstructorpro.ru%2Fgilotinnyj-zhim%2F&psig=AOvVaw1OCHU1dFzEwLa_mDKJ-v3_&ust=1740146668806000&source=images&cd=vfe&opi=89978449&ved=0CBMQjRxqFwoTCMi40NO10osDFQAAAAAdAAAAABAE,,10,3,60,,40-60
+intermediate,strength,Отжимания классические,Грудь,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/JJ1BWht6cbvATAYh-4-1-4.gif,,12,3,60,,
+intermediate,strength,Подтягивания со своим весом,Спина,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/1ILYXtNz80a6Pj6k-16-1-3.gif,,8,3,60,,
+intermediate,strength,Тяга среднего блока,Спина,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/GWtvzgiwJBuDQmS0-16-1-1.gif,,8,2,60,,20-30
+intermediate,strength,Жим гантелей над головой сидя / стоя,Плечи,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/jWOCSF7Dw9SvYfMj-6-2-3.gif,,10,3,60,,10-20
+intermediate,strength,"Приседания в тренажере (вес указан только дополнительный, без учета платформы)",Квадрицепсы,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/o4EeavoC9GJVwppI-11-1-4.gif,,10,3,60,,100
+intermediate,strength,Экстензия на квадрицепсы,Квадрицепсы,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/ilTG6pXrcdT6yerW-11-1-5.gif,,8,2,60,,40-50
+intermediate,strength,Гиперэкстензия (с блином),"задняя поверхность бедра, ягодицы",,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/hoRs4YFK27FIqjjQ-16-1-5.gif,,10,2,60,,5
+intermediate,strength,Румынская тяга,"задняя поверхность бедра, ягодицы",,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/PhUNSY2IfUTO7i4L-13-1-1.gif,,8,3,60,,20-40
+intermediate,strength,Поднятие штанги (прямой / ez) на бицепс стоя,Бицепс,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/1ehIp1r1YAquli22-2-2-1.gif,,8,3,60,,20-30
+intermediate,strength,Тяга верхнего блока на трицепс вниз,Трицепс,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/Bu4UxH9bwkXjSVbD-1-4-2.gif,,8,3,60,,15-20
+intermediate,strength,Подъемы корпуса на наклонной скамье (с блином),Пресс,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/WLvmn2M38GCN3lYJ-7-1-3.gif,,15,2,60,,5
+intermediate,strength,Суперсет на шею: ,Шея,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/yZLX7VQWL0KUyKog-10-1-2.gif,,15,2,60,,5
+advanced,strength,Легкое кардио: беговая дорожка на низкой скорости / элипсоид / велотренажер,Кардио,,gym,,1200,,,,,
+advanced,strength,Жим штанги лежа,Грудь,,gym,https://www.google.com/url?sa=i&url=https%3A%2F%2Finstructorpro.ru%2Fgilotinnyj-zhim%2F&psig=AOvVaw1OCHU1dFzEwLa_mDKJ-v3_&ust=1740146668806000&source=images&cd=vfe&opi=89978449&ved=0CBMQjRxqFwoTCMi40NO10osDFQAAAAAdAAAAABAE,,10,3,,,60-70
+advanced,strength,Отжимания классические,Грудь,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/JJ1BWht6cbvATAYh-4-1-4.gif,,20,3,,,
+advanced,strength,Подтягивания со своим весом,Спина,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/1ILYXtNz80a6Pj6k-16-1-3.gif,,12,3,,,
+advanced,strength,Тяга среднего блока,Спина,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/GWtvzgiwJBuDQmS0-16-1-1.gif,,8,2,,,30-50
+advanced,strength,Жим гантелей над головой сидя / стоя,Плечи,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/jWOCSF7Dw9SvYfMj-6-2-3.gif,,15,3,,,20-30
+advanced,strength,"Приседания в тренажере (вес указан только дополнительный, без учета платформы)",Квадрицепсы,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/o4EeavoC9GJVwppI-11-1-4.gif,,10,3,,,150
+advanced,strength,Экстензия на квадрицепсы,Квадрицепсы,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/ilTG6pXrcdT6yerW-11-1-5.gif,,8,2,,,50-60
+advanced,strength,Гиперэкстензия (с блином),"задняя поверхность бедра, ягодицы",,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/hoRs4YFK27FIqjjQ-16-1-5.gif,,15,2,,,10
+advanced,strength,Румынская тяга,"задняя поверхность бедра, ягодицы",,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/PhUNSY2IfUTO7i4L-13-1-1.gif,,8,3,,,40-60
+advanced,strength,Поднятие штанги (прямой / ez) на бицепс стоя,Бицепс,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/1ehIp1r1YAquli22-2-2-1.gif,,8,3,,,30-50
+advanced,strength,Тяга верхнего блока на трицепс вниз,Трицепс,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/Bu4UxH9bwkXjSVbD-1-4-2.gif,,8,3,,,20-30
+advanced,strength,Подъемы корпуса на наклонной скамье (с блином),Пресс,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/WLvmn2M38GCN3lYJ-7-1-3.gif,,20,2,,,5-10
+advanced,strength,Суперсет на шею: ,Шея,,gym,https://archive.prosto.academy/uploads/images/gallery/2023-07/yZLX7VQWL0KUyKog-10-1-2.gif,,20,2,,,5-10

@@ -575,9 +575,12 @@ class BotHandlers:
     async def view_profile(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """View existing profile"""
         user_id = update.effective_user.id
+        logger.info(f"Viewing profile for user {user_id}")
         profile = self.db.get_user_profile(user_id)
+        logger.info(f"Retrieved profile data: {profile}")
 
         if not profile:
+            logger.warning(f"No profile found for user {user_id}")
             await update.message.reply_text(
                 "У вас еще нет профиля. Используйте /profile чтобы создать его."
             )
@@ -594,27 +597,33 @@ class BotHandlers:
         profile_text += f"🏋️ Оборудование: {profile['equipment']}\n"
 
         # Add update option
-        keyboard = [[InlineKeyboardButton("🔄 Обновить профиль", callback_data="update_profile")]]
+        keyboard = [[InlineKeyboardButton("🔄 Обновить профиль", callback_data="update_profile_full")]]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         await update.message.reply_text(profile_text, reply_markup=reply_markup)
+        logger.info(f"Successfully displayed profile for user {user_id}")
 
     async def start_profile(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Start the profile creation process"""
         user_id = update.effective_user.id
+        logger.info(f"Starting profile process for user {user_id}")
         profile = self.db.get_user_profile(user_id)
+        
+        logger.info(f"Retrieved user profile - ID: {user_id}, Profile: {profile}")
 
         if profile:
             # If profile exists, ask if user wants to update
             keyboard = [
-                [InlineKeyboardButton("✅ Да, обновить", callback_data="update_profile")],
+                [InlineKeyboardButton("✅ Да, обновить все поля", callback_data="update_profile_full")],
                 [InlineKeyboardButton("❌ Нет, оставить текущий", callback_data="keep_profile")]
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
+            logger.info(f"Existing profile check result: {bool(profile)}")
             await update.message.reply_text(
                 "У вас уже есть профиль. Хотите обновить его?",
                 reply_markup=reply_markup
             )
+            logger.info(f"Displayed existing profile with update options for user {user_id}")
             return ConversationHandler.END
 
         # Clear any existing user data
@@ -782,6 +791,8 @@ class BotHandlers:
         """Handle profile-related callbacks"""
         query = update.callback_query
         await query.answer()
+        
+        logger.info(f"Processing profile callback for user {update.effective_user.id}: {query.data}")
 
         if query.data == "update_profile":
             # Clear existing data and start profile update
@@ -790,6 +801,9 @@ class BotHandlers:
             return AGE
         elif query.data == "keep_profile":
             await query.message.reply_text("Хорошо, ваш профиль останется без изменений.")
+            return ConversationHandler.END
+        else:
+            logger.warning(f"Unexpected callback data received: {query.data}")
             return ConversationHandler.END
 
     async def handle_progress_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1178,7 +1192,7 @@ class BotHandlers:
         profile_handler = ConversationHandler(
             entry_points=[
                 CommandHandler('profile', self.start_profile),
-                CallbackQueryHandler(self.handle_profile_callback, pattern='^(update_profile|keep_profile)$')
+                CallbackQueryHandler(self.handle_profile_callback, pattern='^(update_profile|update_profile_full|keep_profile)$')
             ],
             states={
                 AGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.age)],
@@ -1190,8 +1204,10 @@ class BotHandlers:
                 EQUIPMENT: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.equipment)]
             },
             fallbacks=[CommandHandler('cancel', self.cancel)],
-            name="profile_conversation"  # Add name for better logging
+            name="profile_conversation",  # Add name for better logging
+            per_message=False  # Allow callbacks to be processed for the whole conversation
         )
+        logger.info("Profile conversation handler registered")
 
         return [
             CommandHandler('start', self.start),
@@ -1234,7 +1250,15 @@ class BotHandlers:
 
     def register_handlers(self, application):
         """Register all command handlers"""
-        # Calendar handlers first to ensure proper handling
+        # Register profile handler first (it has its own conversation handler)
+        handlers = self.get_handlers()
+        for handler in handlers:
+            if isinstance(handler, ConversationHandler) and getattr(handler, 'name', '') == 'profile_conversation':
+                application.add_handler(handler)
+                logger.info("Added profile conversation handler")
+                break
+        
+        # Calendar handlers to ensure proper handling
         application.add_handler(CommandHandler("calendar", self.show_calendar))
         application.add_handler(CallbackQueryHandler(
             self.handle_calendar_callback,
@@ -1254,7 +1278,6 @@ class BotHandlers:
 
         # Other callback handlers
         application.add_handler(CallbackQueryHandler(self.handle_workout_feedback, pattern=r"^feedback_"))
-        application.add_handler(CallbackQueryHandler(self.handle_profile_callback, pattern=r"^(update_profile|keep_profile)$"))
         application.add_handler(CallbackQueryHandler(
             self.handle_gym_workout_callback,
             pattern=r"^(exercise_timer_|circuit_rest_|exercise_rest_|rest_|exercise_done|set_done|prev_exercise|next_exercise|finish_workout)"

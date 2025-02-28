@@ -1,5 +1,5 @@
 import asyncio
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, Message
 from telegram.ext import (
     ContextTypes, CommandHandler, CallbackQueryHandler, ConversationHandler,
     MessageHandler, filters
@@ -20,6 +20,78 @@ class BotHandlers:
         self.db = database
         self.workout_manager = workout_manager
         self.reminder_manager = reminder_manager
+
+    async def show_progress(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle the /progress command - show fitness dashboard"""
+        try:
+            # Determine if this is a direct command or callback
+            if update.callback_query:
+                user_id = update.callback_query.from_user.id
+                message_obj = update.callback_query.message
+            else:
+                user_id = update.effective_user.id
+                message_obj = update.message
+
+            # Get detailed statistics
+            stats = self.db.get_detailed_progress_stats(user_id)
+            logger.info(f"Retrieved initial stats for dashboard: {stats}")
+
+            streaks = stats['streaks']
+            current_streak = streaks.get('current_streak', 0)
+            longest_streak = streaks.get('longest_streak', 0)
+
+            # Format main dashboard message
+            message = "🏋️‍♂️ *Фитнес Дашборд*\n\n"
+
+            # Overall Statistics
+            message += "*📊 Общая статистика*\n"
+            message += f"• Всего тренировок: {stats.get('total_workouts', 0)}\n"
+            message += f"• Завершено полностью: {stats.get('completed_workouts', 0)}\n"
+            message += f"• Процент завершения: {stats.get('completion_rate', 0)}%\n\n"
+
+            # Streaks
+            message += "*🔥 Серии тренировок*\n"
+            message += f"• Текущая серия: {current_streak} дней\n"
+            message += f"• Лучшая серия: {longest_streak} дней\n\n"
+
+            # Navigation buttons
+            keyboard = [
+                [
+                    InlineKeyboardButton("📈 Прогресс по неделям", callback_data="progress_weekly"),
+                    InlineKeyboardButton("📅 Месячный отчет", callback_data="progress_monthly")
+                ],
+                [
+                    InlineKeyboardButton("🏆 Достижения", callback_data="achievements"),
+                    InlineKeyboardButton("📋 История", callback_data="workout_history")
+                ],
+                [
+                    InlineKeyboardButton("💪 Анализ интенсивности", callback_data="intensity_analysis")
+                ]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+
+            logger.info("Sending main dashboard view")
+            if isinstance(message_obj, Message):
+                await message_obj.reply_text(
+                    message,
+                    reply_markup=reply_markup,
+                    parse_mode='Markdown'
+                )
+            else:
+                # Handle callback query updates
+                await message_obj.edit_text(
+                    message,
+                    reply_markup=reply_markup,
+                    parse_mode='Markdown'
+                )
+
+        except Exception as e:
+            logger.error(f"Error showing progress dashboard: {str(e)}", exc_info=True)
+            error_message = "Произошла ошибка при загрузке статистики. Попробуйте позже."
+            if isinstance(message_obj, Message):
+                await message_obj.reply_text(error_message)
+            else:
+                await update.callback_query.message.reply_text(error_message)
 
     async def start_gym_workout(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Start a gym-specific workout session"""
@@ -708,60 +780,6 @@ class BotHandlers:
             await query.message.reply_text("Хорошо, ваш профиль останется без изменений.")
             return ConversationHandler.END
 
-    async def show_progress(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle the /progress command - show fitness dashboard"""
-        user_id = update.effective_user.id
-        logger.info(f"Showing progress dashboard for user {user_id}")
-
-        try:
-            # Get detailed statistics
-            stats = self.db.get_detailed_progress_stats(user_id)
-            streaks = stats['streaks']
-            current_streak = streaks['current_streak']  # Fixed key name
-            longest_streak = streaks['longest_streak']  # Fixed key name
-
-            # Format main dashboard message
-            message = "🏋️‍♂️ *Фитнес Дашборд*\n\n"
-
-            # Overall Statistics
-            message += "*📊 Общая статистика*\n"
-            message += f"• Всего тренировок: {stats['total_workouts']}\n"
-            message += f"• Завершено полностью: {stats['completed_workouts']}\n"
-            message += f"• Процент завершения: {stats['completion_rate']}%\n\n"
-
-            # Streaks
-            message += "*🔥 Серии тренировок*\n"
-            message += f"• Текущая серия: {current_streak} дней\n"
-            message += f"• Лучшая серия: {longest_streak} дней\n"
-
-            # Create keyboard with statistic options
-            keyboard = [
-                [
-                    InlineKeyboardButton("📈 Прогресс по неделям", callback_data="progress_weekly"),
-                    InlineKeyboardButton("📅 Месячный отчет", callback_data="progress_monthly")
-                ],
-                [
-                    InlineKeyboardButton("🎯 Достижения", callback_data="achievements"),
-                    InlineKeyboardButton("📋 История тренировок", callback_data="workout_history")
-                ],
-                [
-                    InlineKeyboardButton("💪 Анализ интенсивности", callback_data="intensity_analysis")
-                ]
-            ]
-            reply_markup = InlineKeyboardMarkup(keyboard)
-
-            await update.message.reply_text(
-                message,
-                reply_markup=reply_markup,
-                parse_mode='Markdown'
-            )
-
-        except Exception as e:
-            logger.error(f"Error showing progress: {str(e)}")
-            await update.message.reply_text(
-                "Произошла ошибка при загрузке статистики. Попробуйте позже."
-            )
-
     async def handle_progress_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle progress dashboard callbacks"""
         query = update.callback_query
@@ -769,40 +787,42 @@ class BotHandlers:
         user_id = query.from_user.id
 
         try:
-            if query.data == "progress_weekly":
-                stats = self.db.get_detailed_progress_stats(user_id)
-                weekly_stats = stats['weekly_stats']
+            if query.data == "back_to_dashboard":
+                logger.info(f"User {user_id} returning to main dashboard")
+                await self.show_progress(update, context)
+return
 
+            # Get stats once at the beginning
+            logger.info(f"Retrieving statistics for user {user_id}")
+            stats = self.db.get_detailed_progress_stats(user_id)
+            logger.info(f"Retrieved stats: {stats}")
+            message = ""
+
+            if query.data == "progress_weekly":
+                logger.info("Processing weekly progress view")
+                weekly_stats = stats['weekly_stats']
                 message = "*📈 Прогресс по неделям*\n\n"
                 for week, data in weekly_stats.items():
                     message += f"*{week}*\n"
                     message += f"• Тренировок: {data['workouts']}\n"
                     message += f"• Завершено: {data['completed']}\n"
                     message += f"• Эффективность: {data['completion_rate']}%\n\n"
+                logger.info("Weekly progress view processed")
 
             elif query.data == "progress_monthly":
-                stats = self.db.get_detailed_progress_stats(user_id)
+                logger.info("Processing monthly progress view")
                 monthly_stats = stats['monthly_stats']
-
                 message = "*📅 Месячный отчет*\n\n"
                 for month, data in monthly_stats.items():
                     message += f"*{month}*\n"
-                    message += f"•Тренировок: {data['workouts']}\nmessage += f"• Завершено: {data['completed']}\n"
+                    message += f"• Тренировок: {data['workouts']}\n"
+                    message += f"• Завершено: {data['completed']}\n"
                     message += f"• Эффективность: {data['completion_rate']}%\n\n"
-
-                # Add back button
-                keyboard = [[InlineKeyboardButton("🔙 Назад к дашборду", callback_data="back_to_dashboard")]]
-                reply_markup = InlineKeyboardMarkup(keyboard)
-
-                await query.message.edit_text(
-                    message,
-                    reply_markup=reply_markup,
-                    parse_mode='Markdown'
-                )
+                logger.info("Monthly progress view processed")
 
             elif query.data == "achievements":
+                logger.info("Processing achievements view")
                 message = "*🏆 Ваши достижения*\n\n"
-                stats = self.db.get_detailed_progress_stats(user_id)
 
                 # Achievement criteria
                 achievements = []
@@ -810,7 +830,7 @@ class BotHandlers:
                     achievements.append("🎯 Первая тренировка")
                 if stats['total_workouts'] >= 10:
                     achievements.append("💪 Постоянство (10 тренировок)")
-                if stats['streaks']['longest_streak'] >= 7:  # Fixed key name
+                if stats['streaks']['longest_streak'] >= 7:
                     achievements.append("🔥 Недельная серия")
                 if stats['completion_rate'] >= 80:
                     achievements.append("⭐ Высокая эффективность (>80%)")
@@ -819,23 +839,18 @@ class BotHandlers:
                     message += "\n".join(achievements)
                 else:
                     message += "Продолжайте тренироваться, чтобы получить достижения!"
-
-                # Add back button
-                keyboard = [[InlineKeyboardButton("🔙 Назад к дашборду", callback_data="back_to_dashboard")]]
-                reply_markup = InlineKeyboardMarkup(keyboard)
-
-                await query.message.edit_text(
-                    message,
-                    reply_markup=reply_markup,
-                    parse_mode='Markdown'
-                )
+                logger.info(f"Achievements processed: {achievements}")
 
             elif query.data == "workout_history":
+                logger.info("Processing workout history view")
                 workouts = self.db.get_user_progress(user_id)
                 message = "*📋 История тренировок*\n\n"
 
                 # Show last 5 workouts
-                for workout in workouts[-5:]:
+                recent_workouts = workouts[-5:]
+                logger.info(f"Found {len(recent_workouts)} recent workouts")
+
+                for workout in recent_workouts:
                     date = workout['date']
                     completed = workout['exercises_completed']
                     total = workout['total_exercises']
@@ -844,12 +859,16 @@ class BotHandlers:
                     message += f"• Процент: {int((completed/total)*100)}%\n\n"
 
             elif query.data == "intensity_analysis":
+                logger.info("Processing intensity analysis view")
                 intensity_stats = self.db.get_workout_intensity_stats(user_id)
                 message = "*💪 Анализ интенсивности*\n\n"
 
                 if intensity_stats:
                     # Show last 7 days
-                    for stat in intensity_stats[-7:]:
+                    recent_stats = intensity_stats[-7:]
+                    logger.info(f"Processing {len(recent_stats)} days of intensity data")
+
+                    for stat in recent_stats:
                         date = stat['date']
                         completion = stat['completion_rate']
                         intensity_bar = "▓" * (int(completion/10)) + "░" * (10 - int(completion/10))
@@ -862,6 +881,7 @@ class BotHandlers:
             keyboard = [[InlineKeyboardButton("🔙 Назад к дашборду", callback_data="back_to_dashboard")]]
             reply_markup = InlineKeyboardMarkup(keyboard)
 
+            logger.info("Sending updated progress view")
             await query.message.edit_text(
                 message,
                 reply_markup=reply_markup,
@@ -869,7 +889,7 @@ class BotHandlers:
             )
 
         except Exception as e:
-            logger.error(f"Error handling progress callback: {str(e)}")
+            logger.error(f"Error handling progress callback: {str(e)}", exc_info=True)
             await query.message.reply_text(
                 "Произошла ошибка при загрузке данных. Попробуйте позже."
             )

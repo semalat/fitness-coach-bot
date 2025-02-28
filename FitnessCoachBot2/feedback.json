@@ -77,6 +77,12 @@
       "emotional_state": null,
       "physical_state": null,
       "timestamp": "2025-02-28 11:45:44"
+    },
+    "workout_20250228_124058": {
+      "workout_id": "workout_20250228_124058",
+      "emotional_state": null,
+      "physical_state": null,
+      "timestamp": "2025-02-28 12:41:01"
     }
   }
 }

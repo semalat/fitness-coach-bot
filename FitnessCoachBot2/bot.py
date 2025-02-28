@@ -66,7 +66,9 @@ def release_lock(lock_fd):
         try:
             fcntl.flock(lock_fd, fcntl.LOCK_UN)
             os.close(lock_fd)
-            os.unlink(LOCK_FILE)
+            if os.path.exists(LOCK_FILE):
+                os.unlink(LOCK_FILE)
+                logger.info("Lock file released and removed")
         except (IOError, OSError) as e:
             logger.error(f"Error releasing lock: {e}")
 

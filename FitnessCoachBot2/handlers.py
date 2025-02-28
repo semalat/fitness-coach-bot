@@ -24,13 +24,19 @@ class BotHandlers:
     async def show_progress(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle the /progress command - show fitness dashboard"""
         try:
-            # Determine if this is a direct command or callback
+            # Initialize message_obj early
+            message_obj = None
+            user_id = None
+
             if update.callback_query:
                 user_id = update.callback_query.from_user.id
                 message_obj = update.callback_query.message
-            else:
+            elif update.message:
                 user_id = update.effective_user.id
                 message_obj = update.message
+            else:
+                logger.error("Invalid update object: neither callback_query nor message found")
+                return
 
             # Get detailed statistics
             stats = self.db.get_detailed_progress_stats(user_id)
@@ -96,14 +102,12 @@ class BotHandlers:
         except Exception as e:
             logger.error(f"Error showing progress dashboard: {str(e)}", exc_info=True)
             error_message = "Произошла ошибка при загрузке статистики. Попробуйте позже."
-            try:
-                if isinstance(message_obj, Message):
-                    await message_obj.reply_text(error_message)
-                else:
-                    await update.callback_query.message.reply_text(error_message)
-            except Exception as send_error:
-                logger.error(f"Error sending error message: {str(send_error)}", exc_info=True)
+            if message_obj:
+                await message_obj.reply_text(error_message)
+            elif update.effective_chat:
                 await update.effective_chat.send_message(error_message)
+            else:
+                logger.error("Could not send error message: no valid message object or chat")
 
     async def start_gym_workout(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Start a gym-specific workout session"""
@@ -574,53 +578,99 @@ class BotHandlers:
 
     async def view_profile(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """View existing profile"""
-        user_id = update.effective_user.id
-        profile = self.db.get_user_profile(user_id)
+        try:
+            user_id = update.effective_user.id
+            logger.info(f"Viewing profile for user {user_id}")
 
-        if not profile:
+            profile = self.db.get_user_profile(user_id)
+            logger.info(f"Retrieved profile data: {profile}")
+
+            if not profile:
+                logger.info(f"No profile found for user {user_id}")
+                await update.message.reply_text(
+                    "У вас еще нет профиля. Используйте /profile чтобы создать его."
+                )
+                return
+
+            # Format profile data
+            profile_text = "🏋️‍♂️ Ваш профиль:\n\n"
+            profile_text += f"📊 Возраст: {profile.get('age', 'Не указан')} лет\n"
+            profile_text += f"📏 Рост: {profile.get('height', 'Не указан')} см\n"
+            profile_text += f"⚖️ Вес: {profile.get('weight', 'Не указан')} кг\n"
+            profile_text += f"👤 Пол: {profile.get('sex', 'Не указан')}\n"
+            profile_text += f"🎯 Цели: {profile.get('goals', 'Не указаны')}\n"
+            profile_text += f"💪 Уровень подготовки: {profile.get('fitness_level', 'Не указан')}\n"
+            profile_text += f"🏋️ Оборудование: {profile.get('equipment', 'Не указано')}\n"
+
+            # Add update option
+            keyboard = [[InlineKeyboardButton("🔄 Обновить профиль", callback_data="update_profile")]]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+
+            await update.message.reply_text(profile_text, reply_markup=reply_markup)
+            logger.info(f"Successfully displayed profile for user {user_id}")
+
+        except Exception as e:
+            logger.error(f"Error viewing profile: {str(e)}", exc_info=True)
             await update.message.reply_text(
-                "У вас еще нет профиля. Используйте /profile чтобы создать его."
+                "Произошла ошибка при загрузке профиля. Пожалуйста, попробуйте позже."
             )
-            return
-
-        # Format profile data
-        profile_text = "🏋️‍♂️ Ваш профиль:\n\n"
-        profile_text += f"📊 Возраст: {profile['age']} лет\n"
-        profile_text += f"📏 Рост: {profile['height']} см\n"
-        profile_text += f"⚖️ Вес: {profile['weight']} кг\n"
-        profile_text += f"👤 Пол: {profile['sex']}\n"
-        profile_text += f"🎯 Цели: {profile['goals']}\n"
-        profile_text += f"💪 Уровень подготовки: {profile['fitness_level']}\n"
-        profile_text += f"🏋️ Оборудование: {profile['equipment']}\n"
-
-        # Add update option
-        keyboard = [[InlineKeyboardButton("🔄 Обновить профиль", callback_data="update_profile")]]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-
-        await update.message.reply_text(profile_text, reply_markup=reply_markup)
 
     async def start_profile(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Start the profile creation process"""
-        user_id = update.effective_user.id
-        profile = self.db.get_user_profile(user_id)
+        """Start the profile creation/update process"""
+        try:
+            user_id = update.effective_user.id
+            logger.info(f"Starting profile process for user {user_id}")
 
-        if profile:
-            # If profile exists, ask if user wants to update
-            keyboard = [
-                [InlineKeyboardButton("✅ Да, обновить", callback_data="update_profile")],
-                [InlineKeyboardButton("❌ Нет, оставить текущий", callback_data="keep_profile")]
-            ]
-            reply_markup = InlineKeyboardMarkup(keyboard)
+            profile = self.db.get_user_profile(user_id)
+            logger.info(f"Existing profile check result: {profile is not None}")
+
+            if profile:
+                # If profile exists, show current profile and update options
+                profile_text = "🏋️‍♂️ *Текущий профиль:*\n\n"
+                profile_text += f"📊 Возраст: {profile.get('age', 'Не указан')} лет\n"
+                profile_text += f"📏 Рост: {profile.get('height', 'Не указан')} см\n"
+                profile_text += f"⚖️ Вес: {profile.get('weight', 'Не указан')} кг\n"
+                profile_text += f"👤 Пол: {profile.get('sex', 'Не указан')}\n"
+                profile_text += f"🎯 Цели: {profile.get('goals', 'Не указаны')}\n"
+                profile_text += f"💪 Уровень подготовки: {profile.get('fitness_level', 'Не указан')}\n"
+                profile_text += f"🏋️ Оборудование: {profile.get('equipment', 'Не указано')}\n\n"
+                profile_text += "Хотите обновить профиль?"
+
+                keyboard = [
+                    [InlineKeyboardButton("✏️ Обновить все данные", callback_data="update_profile_full")],
+                    [InlineKeyboardButton("🎯 Изменить только цели", callback_data="update_goals")],
+                    [InlineKeyboardButton("💪 Изменить уровень", callback_data="update_level")],
+                    [InlineKeyboardButton("❌ Оставить без изменений", callback_data="keep_profile")]
+                ]
+                reply_markup = InlineKeyboardMarkup(keyboard)
+
+                await update.message.reply_text(
+                    profile_text,
+                    reply_markup=reply_markup,
+                    parse_mode='Markdown'
+                )
+                logger.info(f"Displayed existing profile with update options for user {user_id}")
+                return ConversationHandler.END
+
+            # Clear any existing user data and start new profile creation
+            context.user_data.clear()
+            logger.info("Starting new profile creation flow")
+
+            welcome_text = (
+                "👋 Давайте создадим ваш фитнес-профиль!\n\n"
+                "Это поможет нам подобрать оптимальную программу тренировок специально для вас.\n\n"
+                "Для начала, укажите ваш возраст (полных лет):"
+            )
+            await update.message.reply_text(welcome_text)
+            logger.info(f"Started new profile creation for user {user_id}")
+            return AGE
+
+        except Exception as e:
+            logger.error(f"Error in start_profile: {str(e)}", exc_info=True)
             await update.message.reply_text(
-                "У вас уже есть профиль. Хотите обновить его?",
-                reply_markup=reply_markup
+                "Произошла ошибка при работе с профилем. Пожалуйста, попробуйте позже."
             )
             return ConversationHandler.END
-
-        # Clear any existing user data
-        context.user_data.clear()
-        await update.message.reply_text(messages.PROFILE_PROMPTS['age'])
-        return AGE
 
     async def age(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle age input"""
@@ -719,13 +769,15 @@ class BotHandlers:
         await update.message.reply_text(messages.PROFILE_COMPLETE)
         return ConversationHandler.END
 
-    async def workout(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def workout(self, update: Update, context: ContextTypes.DEFAULTTYPE):
         """Handle the /workout command - show workout overview"""
         user_id = update.effective_user.id
         profile = self.db.get_user_profile(user_id)
 
         if not profile:
-            await update.message.reply_text("Сначала создайте профиль командой /profile")
+            await update.message.reply_text(
+                "Сначала создайте профиль командой /profile"
+            )
             return
 
         # Generate and cache the workout
@@ -761,7 +813,7 @@ class BotHandlers:
         if 'зал' in equipment:
             await update.message.reply_text(
                 "Ваш профиль настроен для тренировок в зале. "
-                "Используйте /start_gym_workout для начала тренировки в зале."
+                "Используйте /start_gym_workout для начала тренировки взале."
             )
             return
 
@@ -791,6 +843,34 @@ class BotHandlers:
         elif query.data == "keep_profile":
             await query.message.reply_text("Хорошо, ваш профиль останется без изменений.")
             return ConversationHandler.END
+        elif query.data == "update_profile_full":
+            context.user_data.clear()
+            await query.message.reply_text(messages.PROFILE_PROMPTS['age'])
+            return AGE
+        elif query.data == "update_goals":
+            context.user_data['age'] = self.db.get_user_profile(query.from_user.id)['age']
+            context.user_data['height'] = self.db.get_user_profile(query.from_user.id)['height']
+            context.user_data['weight'] = self.db.get_user_profile(query.from_user.id)['weight']
+            context.user_data['sex'] = self.db.get_user_profile(query.from_user.id)['sex']
+            context.user_data['fitness_level'] = self.db.get_user_profile(query.from_user.id)['fitness_level']
+            context.user_data['equipment'] = self.db.get_user_profile(query.from_user.id)['equipment']
+            await query.message.reply_text(
+                messages.PROFILE_PROMPTS['goals'],
+                reply_markup=get_goals_keyboard()
+            )
+            return GOALS
+        elif query.data == "update_level":
+            context.user_data['age'] = self.db.get_user_profile(query.from_user.id)['age']
+            context.user_data['height'] = self.db.get_user_profile(query.from_user.id)['height']
+            context.user_data['weight'] = self.db.get_user_profile(query.from_user.id)['weight']
+            context.user_data['sex'] = self.db.get_user_profile(query.from_user.id)['sex']
+            context.user_data['goals'] = self.db.get_user_profile(query.from_user.id)['goals']
+            context.user_data['equipment'] = self.db.get_user_profile(query.from_user.id)['equipment']
+            await query.message.reply_text(
+                messages.PROFILE_PROMPTS['fitness_level'],
+                reply_markup=get_fitness_level_keyboard()
+            )
+            return FITNESS_LEVEL
 
     async def handle_progress_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle progress dashboard callbacks"""
@@ -1178,7 +1258,7 @@ class BotHandlers:
         profile_handler = ConversationHandler(
             entry_points=[
                 CommandHandler('profile', self.start_profile),
-                CallbackQueryHandler(self.handle_profile_callback, pattern='^(update_profile|keep_profile)$')
+                CallbackQueryHandler(self.handle_profile_callback, pattern='^(update_profile|keep_profile|update_profile_full|update_goals|update_level)$')
             ],
             states={
                 AGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.age)],
@@ -1254,7 +1334,7 @@ class BotHandlers:
 
         # Other callback handlers
         application.add_handler(CallbackQueryHandler(self.handle_workout_feedback, pattern=r"^feedback_"))
-        application.add_handler(CallbackQueryHandler(self.handle_profile_callback, pattern=r"^(update_profile|keep_profile)$"))
+        application.add_handler(CallbackQueryHandler(self.handle_profile_callback, pattern=r"^(update_profile|keep_profile|update_profile_full|update_goals|update_level)$"))
         application.add_handler(CallbackQueryHandler(
             self.handle_gym_workout_callback,
             pattern=r"^(exercise_timer_|circuit_rest_|exercise_rest_|rest_|exercise_done|set_done|prev_exercise|next_exercise|finish_workout)"

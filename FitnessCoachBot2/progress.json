@@ -202,6 +202,29 @@
       "total_exercises": 13,
       "workout_completed": true,
       "workout_id": "workout_20250228_124058"
+    },
+    {
+      "date": "2025-03-01",
+      "exercises_completed": 1,
+      "total_exercises": 12,
+      "workout_completed": true,
+      "workout_id": "workout_20250301_072615"
+    }
+  ],
+  "413662602": [
+    {
+      "date": "2025-02-28",
+      "exercises_completed": 5,
+      "total_exercises": 13,
+      "workout_completed": true,
+      "workout_id": "workout_20250228_172528"
+    },
+    {
+      "date": "2025-02-28",
+      "exercises_completed": 7,
+      "total_exercises": 7,
+      "workout_completed": true,
+      "workout_id": "workout_20250228_172819"
     }
   ]
 }

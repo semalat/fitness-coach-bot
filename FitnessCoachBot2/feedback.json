@@ -84,5 +84,19 @@
       "physical_state": null,
       "timestamp": "2025-02-28 12:41:01"
     }
+  },
+  "413662602": {
+    "workout_20250228_172528": {
+      "workout_id": "workout_20250228_172528",
+      "emotional_state": "fun",
+      "physical_state": null,
+      "timestamp": "2025-02-28 17:25:33"
+    },
+    "workout_20250228_172819": {
+      "workout_id": "workout_20250228_172819",
+      "emotional_state": null,
+      "physical_state": "ok",
+      "timestamp": "2025-02-28 17:28:25"
+    }
   }
 }

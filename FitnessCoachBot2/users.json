@@ -5,9 +5,31 @@
     "weight": 65.0,
     "sex": "Мужской",
     "goals": "Похудение",
-    "fitness_level": "Средний",
-    "equipment": "Доступ в спортзал",
+    "fitness_level": "Продвинутый",
+    "equipment": "Только вес тела",
     "telegram_handle": "chirov_gi",
-    "last_updated": "2025-02-28 11:43:49"
+    "last_updated": "2025-03-01 07:26:46"
+  },
+  "413662602": {
+    "age": 22,
+    "height": 181,
+    "weight": 75.0,
+    "sex": "Мужской",
+    "goals": "Набор мышечной массы",
+    "fitness_level": "Продвинутый",
+    "equipment": "Доступ в спортзал",
+    "telegram_handle": "sslatyshev",
+    "last_updated": "2025-02-28 17:24:46"
+  },
+  "1789243667": {
+    "age": 19,
+    "height": 174,
+    "weight": 67.0,
+    "sex": "Женский",
+    "goals": "Общая физическая подготовка",
+    "fitness_level": "Средний",
+    "equipment": "Только вес тела",
+    "telegram_handle": "ver_r_ra_pod",
+    "last_updated": "2025-03-04 11:38:44"
   }
 }

@@ -409,3 +409,39 @@ class Database:
             "weekly_stats": dict(weekly_stats),
             "monthly_stats": dict(monthly_stats)
         }
+
+    def save_subscription(self, user_id, subscription_data):
+        """Save user subscription data"""
+        user_id = str(user_id)
+        if user_id not in self.users:
+            logger.warning(f"No user profile found for user {user_id} when saving subscription")
+            return False
+
+        self.users[user_id]['subscription'] = subscription_data
+        self._save_to_file('users.json', self.users)
+        return True
+
+    def get_subscription(self, user_id):
+        """Get user subscription data"""
+        user_id = str(user_id)
+        user = self.users.get(user_id, {})
+        return user.get('subscription')
+
+    def check_subscription_status(self, user_id):
+        """Check if user has active subscription or is within trial period"""
+        user_id = str(user_id)
+        user = self.users.get(user_id, {})
+
+        if not user:
+            return False
+
+        subscription = user.get('subscription', {})
+        if subscription.get('active', False):
+            # Check if subscription is still valid
+            expiry_date = datetime.strptime(subscription.get('expiry_date', '2000-01-01'), '%Y-%m-%d')
+            return datetime.now() <= expiry_date
+
+        # Check trial period
+        profile_created = datetime.strptime(user.get('last_updated', '2000-01-01'), '%Y-%m-%d %H:%M:%S')
+        trial_end = profile_created + timedelta(days=10)
+        return datetime.now() <= trial_end

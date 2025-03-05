@@ -98,5 +98,27 @@
       "physical_state": "ok",
       "timestamp": "2025-02-28 17:28:25"
     }
+  },
+  "1789243667": {
+    "workout_20250304_114501": {
+      "workout_id": "workout_20250304_114501",
+      "emotional_state": "fun",
+      "physical_state": null,
+      "timestamp": "2025-03-04 11:45:19"
+    },
+    "workout_20250304_115217": {
+      "workout_id": "workout_20250304_115217",
+      "emotional_state": "fun",
+      "physical_state": null,
+      "timestamp": "2025-03-04 11:52:40"
+    }
+  },
+  "5646237604": {
+    "workout_20250304_190720": {
+      "workout_id": "workout_20250304_190720",
+      "emotional_state": null,
+      "physical_state": "ok",
+      "timestamp": "2025-03-04 19:07:24"
+    }
   }
 }

@@ -19,7 +19,7 @@
     "fitness_level": "Продвинутый",
     "equipment": "Доступ в спортзал",
     "telegram_handle": "sslatyshev",
-    "last_updated": "2025-02-28 17:24:46"
+    "last_updated": "2025-03-04 15:47:01"
   },
   "1789243667": {
     "age": 19,
@@ -31,5 +31,16 @@
     "equipment": "Только вес тела",
     "telegram_handle": "ver_r_ra_pod",
     "last_updated": "2025-03-06 11:38:44"
+  },
+  "5646237604": {
+    "age": 21,
+    "height": 178,
+    "weight": 71.8,
+    "sex": "Мужской",
+    "goals": "Набор мышечной массы",
+    "fitness_level": "Средний",
+    "equipment": "Доступ в спортзал",
+    "telegram_handle": "Baikodis",
+    "last_updated": "2025-03-04 19:03:08"
   }
 }

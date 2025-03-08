@@ -28,6 +28,7 @@ args = "cd FitnessCoachBot2 && python bot.py"
 
 [deployment]
 run = ["sh", "-c", "cd FitnessCoachBot2 && python bot.py"]
+deploymentTarget = "cloudrun"
 
 [env]
 REPLIT_DISABLE_PACKAGE_LAYER = "1"

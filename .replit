@@ -29,5 +29,8 @@ args = "cd FitnessCoachBot2 && python bot.py"
 [deployment]
 run = ["sh", "-c", "cd FitnessCoachBot2 && python bot.py"]
 
+[env]
+REPLIT_DISABLE_PACKAGE_LAYER = "1"
+
 [nix]
 channel = "stable-24_05"

@@ -42,5 +42,21 @@
     "equipment": "Доступ в спортзал",
     "telegram_handle": "Baikodis",
     "last_updated": "2025-03-04 19:03:08"
+  },
+  "405653414": {
+    "age": 22,
+    "height": 181,
+    "weight": 73.0,
+    "sex": "Мужской",
+    "goals": "Набор мышечной массы",
+    "fitness_level": "Продвинутый",
+    "equipment": "Доступ в спортзал",
+    "telegram_handle": "Blndfolded",
+    "last_updated": "2025-03-07 11:03:08",
+    "subscription": {
+      "active": false,
+      "trial_start": "2025-03-07",
+      "trial_end": "2025-03-17"
+    }
   }
 }

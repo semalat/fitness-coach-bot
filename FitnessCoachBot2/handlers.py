@@ -346,10 +346,6 @@ class BotHandlers:
             # Ask for feedback about the workout
             keyboard = [
                 [
-                    InlineKeyboardButton("😊 Было весело!", callback_data="feedback_fun"),
-                    InlineKeyboardButton("😐 Не очень", callback_data="feedback_not_fun")
-                ],
-                [
                     InlineKeyboardButton("💪 Слишком легко", callback_data="feedback_too_easy"),
                     InlineKeyboardButton("👍 В самый раз", callback_data="feedback_ok"),
                     InlineKeyboardButton("😓 Устал(а)", callback_data="feedback_tired")

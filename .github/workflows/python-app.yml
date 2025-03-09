@@ -5,9 +5,9 @@ name: Python application
 
 on:
   push:
-    branches: [ "replit-agent" ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ "replit-agent" ]
+    branches: [ "main" ]
 
 permissions:
   contents: read

@@ -24,10 +24,10 @@ task = "packager.installForAll"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd FitnessCoachBot2 && python bot.py"
+args = "cd fitness_coach_bot && python bot.py"
 
 [deployment]
-run = ["sh", "-c", "cd FitnessCoachBot2 && python bot.py"]
+run = ["sh", "-c", "cd fitness_coach_bot && python bot.py"]
 deploymentTarget = "cloudrun"
 
 [env]

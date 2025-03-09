@@ -1335,6 +1335,14 @@ class BotHandlers:
 
     def register_handlers(self, application):
         """Register all handlers"""
+        # Register profile handler first (it has its own conversation handler)
+        handlers = self.get_handlers()
+        for handler in handlers:
+            if isinstance(handler, ConversationHandler) and getattr(handler, 'name', '') == 'profile_conversation':
+                application.add_handler(handler)
+                logger.info("Added profile conversation handler")
+                break
+
         # Command handlers
         application.add_handler(CommandHandler("start", self.start))
         application.add_handler(CommandHandler("help", self.help))
@@ -1345,6 +1353,7 @@ class BotHandlers:
         application.add_handler(CommandHandler("progress", self.show_progress))
         application.add_handler(CommandHandler("calendar", self.show_calendar))
         application.add_handler(CommandHandler("reminder", self.set_reminder))
+        application.add_handler(CommandHandler("subscription", self.subscription))
 
         # Add dedicated handler for profile updates outside of conversation
         application.add_handler(CallbackQueryHandler(self.handle_profile_callback, pattern=r"^(update_profile|update_profile_full|keep_profile)$"))

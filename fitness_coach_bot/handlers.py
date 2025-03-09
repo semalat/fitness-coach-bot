@@ -1177,10 +1177,6 @@ class BotHandlers:
 
         # Generate overview
         overview = self.workout_manager._generate_gym_overview(workout)
-
-        # Add specific start command based on muscle group
-        overview += "\n📱 Используйте /start_gym_workout для начала тренировки"
-
         await update.message.reply_text(overview)
 
     async def create_muscle_workout(self, update: Update, context: ContextTypes.DEFAULT_TYPE):

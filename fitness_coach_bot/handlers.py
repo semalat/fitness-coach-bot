@@ -718,448 +718,22 @@ class BotHandlers:
         await self.save_profile(update.effective_user.id, context.user_data, update.effective_user.username)
 
         await update.message.reply_text(messages.PROFILE_COMPLETE)
-        return ConversationHandler.END
 
-    async def workout(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle the /workout command - show workout overview"""
-        user_id = update.effective_user.id
-        profile = self.db.get_user_profile(user_id)
-
-        if not profile:
-            await update.message.reply_text("Сначала создайте профиль командой /profile")
-            return
-
-        # Generate and cache the workout
-        equipment = profile.get('equipment', '').lower()
-        goal = profile.get('goals', 'общая физическая подготовка').lower()
-
-        if 'зал' in equipment:
-            workout = self.workout_manager.generate_gym_workout(profile)
-        else:
-            workout = self.workout_manager.generate_bodyweight_workout(profile)
-
-        # Save the preview workout
-        self.db.save_preview_workout(user_id, workout)
-
-        # Generate overview from the cached workout
-        if 'зал' in equipment:
-            overview = self.workout_manager._generate_gym_overview(workout)
-        else:
-            overview = self.workout_manager._generate_bodyweight_overview(workout, goal)
-
-        await update.message.reply_text(overview)
-
-    async def start_workout(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Start a bodyweight workout session"""
-        user_id = update.effective_user.id
-        profile = self.db.get_user_profile(user_id)
-
-        if not profile:
-            await update.message.reply_text("Сначала создайте профиль командой /profile")
-            return
-
-        equipment = profile.get('equipment', '').lower()
-        if 'зал' in equipment:
-            await update.message.reply_text(
-                "Ваш профиль настроен для тренировок в зале. "
-                "Используйте /start_gym_workout для начала тренировки в зале."
-            )
-            return
-
-        # Get the previewed workout or generate new if none exists
-        workout = self.db.get_preview_workout(user_id)
-        if not workout:
-            logger.info(f"No preview workout found for user {user_id}, generating new workout")
-            workout = self.workout_manager.generate_bodyweight_workout(profile)
-        else:
-            logger.info(f"Using previewed workout for user {user_id}")
-
-        self.db.start_active_workout(user_id, workout)
-        self.db.clear_preview_workout(user_id) # Clear the preview after starting
-        await self._show_gym_exercise(update, context)
-
-
-    async def check_subscription_middleware(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Check if user has active subscription or is in trial period"""
-        user_id = update.effective_user.id
-
-        # Commands that don't require subscription check
-        free_commands = ['/start', '/help', '/subscription', '/profile']
-        if update.message and update.message.text:
-            command = update.message.text.split()[0]
-            if command in free_commands:
-                return True
-
-        has_access = self.db.check_subscription_status(user_id)
-        if not has_access:
-            await update.message.reply_text(
-                "⚠️ Ваш пробный период закончился или подписка истекла.\n"
-                "Используйте команду /subscription для получения информации о подписке."
-            )
-            return False
-        return True
-
-    async def subscription(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle subscription command"""
-        user_id = update.effective_user.id
-        subscription_data = self.db.get_subscription(user_id)
-
-        if subscription_data and subscription_data.get('active', False):
-            expiry_date = datetime.strptime(subscription_data['expiry_date'], '%Y-%m-%d')
-            days_left = (expiry_date - datetime.now()).days
-
-            message = (
-                "ℹ️ Информация о вашей подписке:\n\n"
-                f"✅ Статус: Активная\n"
-                f"📅 Действует до: {expiry_date.strftime('%d.%m.%Y')}\n"
-                f"⏳ Осталось дней: {days_left}\n\n"
-                "Спасибо, что пользуетесь нашим ботом! 🙏"
-            )
-        else:
-            user_profile = self.db.get_user_profile(user_id)
-            if user_profile:
-                profile_created = datetime.strptime(user_profile.get('last_updated', '2000-01-01'), '%Y-%m-%d %H:%M:%S')
-                trial_end = profile_created + timedelta(days=10)
-                days_left = (trial_end - datetime.now()).days
-
-                if days_left > 0:
-                    trial_message = f"\n\n⏳ Ваш пробный период: осталось {days_left} дней"
-                else:
-                    trial_message = "\n\n⚠️ Ваш пробный период закончился"
-            else:
-                trial_message = ""
-
-            message = f"{SUBSCRIPTION_MESSAGE}{trial_message}\n\n[Оформить подписку](payment_link)"
-
-        # Create subscription button (to be implemented later)
-        keyboard = [[InlineKeyboardButton("💳 Оформить подписку", callback_data="subscribe")]]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-
-        await update.message.reply_text(
-            message,
-            reply_markup=reply_markup,
-            parse_mode='Markdown',
-            disable_web_page_preview=True
-        )
-
-    async def handle_gym_workout_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle workout callbacks"""
-        query = update.callback_query
-        await query.answer()
-
-        user_id = update.effective_user.id
-        workout = self.db.get_active_workout(user_id)
-
-        if not workout:
-            await query.message.reply_text(
-                "Тренировка не найдена. Используйте /workout для получения программы."
-            )
-            return
-
-        # Handle exercise timer
-        if query.data.startswith("exercise_timer_"):
-            time = int(query.data.split('_')[2])
-            await self.handle_exercise_timer(update, context, time)
-            return
-
-        if workout['workout_type'] == 'bodyweight':
-            current_circuit = workout.get('current_circuit', 1)
-            exercise = workout['exercises'][workout['current_exercise']]
-            total_circuits = exercise.get('circuits', 3)
-
-            if query.data == "exercise_done":
-                if workout['current_exercise'] < workout['total_exercises'] - 1:
-                    # Move to next exercise in current circuit
-                    workout['current_exercise'] += 1
-                    self.db.save_active_workout(user_id, workout)
-                    # Delete previous exercise message
-                    try:
-                        await query.message.delete()
-                    except Exception:
-                        pass
-                    await self._show_gym_exercise(update, context)
-                else:
-                    # Last exercise in circuit completed
-                    if current_circuit < total_circuits:
-                        # Start next circuit from first exercise
-                        workout['current_exercise'] = 0
-                        workout['current_circuit'] = current_circuit + 1
-                        self.db.save_active_workout(user_id, workout)
-                        # Delete previous exercise message
-                        try:
-                            await query.message.delete()
-                        except Exception:
-                            pass
-                        await self._show_gym_exercise(update, context)
-                    else:
-                        # All circuits completed
-                        await self._finish_workout(update, context)
-
-            elif query.data.startswith("circuit_rest_"):
-                rest_time = int(query.data.split('_')[2])
-                await self.handle_timer(update, context, "Отдых между кругами", rest_time)
-
-            elif query.data.startswith("exercise_rest_"):
-                rest_time = int(query.data.split('_')[2])
-                await self.handle_timer(update, context, "Отдых между упражнениями", rest_time)
-
-        else:
-            # Gym workout callback handling
-            if query.data == "set_done":
-                current_exercise = workout['exercises'][workout['current_exercise']]
-                current_set = current_exercise.get('current_set', 1)
-                total_sets = int(current_exercise.get('sets', 3))
-
-                if current_set < total_sets:
-                    current_exercise['current_set'] = current_set + 1
-                    self.db.save_active_workout(user_id, workout)
-                    # Delete previous exercise message
-                    try:
-                        await query.message.delete()
-                    except Exception:
-                        pass
-                    await self._show_gym_exercise(update, context)
-                else:
-                    if workout['current_exercise'] < workout['total_exercises'] - 1:
-                        workout['current_exercise'] += 1
-                        workout['exercises'][workout['current_exercise']]['current_set'] = 1
-                        self.db.save_active_workout(user_id, workout)
-                        # Delete previous exercise message
-                        try:
-                            await query.message.delete()
-                        except Exception:
-                            pass
-                        await self._show_gym_exercise(update, context)
-                    else:
-                        await self._finish_workout(update, context)
-
-            elif query.data.startswith("rest_"):
-                rest_time = int(query.data.split('_')[1])
-                await self.handle_timer(update, context, "Отдых", rest_time)
-
-        if query.data == "prev_exercise" and workout['current_exercise'] > 0:
-            workout['current_exercise'] -= 1
-            self.db.save_active_workout(user_id, workout)
-            # Delete previous exercise message
-            try:
-                await query.message.delete()
-            except Exception:
-                pass
-            await self._show_gym_exercise(update, context)
-
-        elif query.data == "next_exercise" and workout['current_exercise'] < workout['total_exercises'] - 1:
-            workout['current_exercise'] += 1
-            self.db.save_active_workout(user_id, workout)
-            # Delete previous exercise message
-            try:
-                await query.message.delete()
-            except Exception:
-                pass
-            await self._show_gym_exercise(update, context)
-
-        elif query.data == "finish_workout":
-            await self._finish_workout(update, context)
-
-    async def handle_exercise_timer(self, update: Update, context: ContextTypes.DEFAULT_TYPE, exercise_time: int):
-        """Handle exercise duration timer"""
-        query = update.callback_query
-        logger.info(f"Starting exercise timer for {exercise_time} seconds")
-
-        # Send initial timer message
-        timer_message = await query.message.reply_text(
-            "🏃‍♂️ Начинаем упражнение!\n"
-            f"⏱ Осталось: {exercise_time} сек"
-        )
-        logger.info("Timer message sent")
-
-        for remaining in range(exercise_time - 1, -1, -1):
-            await asyncio.sleep(1)
-            try:
-                if remaining > 0:
-                    await timer_message.edit_text(
-                        "🏃‍♂️ Продолжайте упражнение!\n"
-                        f"⏱ Осталось: {remaining} сек"
-                    )
-                    logger.debug(f"Timer updated: {remaining} seconds remaining")
-                else:
-                    await timer_message.edit_text("✅ Время упражнения истекло!")
-                    logger.info("Exercise timer completed")
-            except Exception as e:
-                logger.error(f"Error updating timer at {remaining} seconds: {str(e)}", exc_info=True)
-                break
-
-        # Delete timer message after completion
-        try:
-            await timer_message.delete()
-            logger.info("Timer message deleted")
-        except Exception as e:
-            logger.error(f"Error deleting timer message: {str(e)}", exc_info=True)
-
-        completion_message = await query.message.reply_text(
-            "Упражнение завершено!\n"
-            "Нажмите '✅ Упражнение выполнено' для продолжения."
-        )
-        logger.info("Completion message sent")
-
-    async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle the /start command"""
-        try:
-            await update.message.reply_text(messages.WELCOME_MESSAGE)
-            logger.info(f"User {update.effective_user.id} started the bot")
-        except Exception as e:
-            logger.error(f"Error in start handler: {e}")
-            await update.message.reply_text("Произошла ошибка. Пожалуйста, попробуйте еще раз.")
-
-    async def view_profile(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """View existing profile"""
-        user_id = update.effective_user.id
-        logger.info(f"Viewing profile for user {user_id}")
-        profile = self.db.get_user_profile(user_id)
-        logger.info(f"Retrieved profile data: {profile}")
-
-        if not profile:
-            logger.warning(f"No profile found for user {user_id}")
-            await update.message.reply_text(
-                "У вас еще нет профиля. Используйте /profile чтобы создать его."
-            )
-            return
-
-        # Format profile data
-        profile_text = "🏋️‍♂️ Ваш профиль:\n\n"
-        profile_text += f"📊 Возраст: {profile['age']} лет\n"
-        profile_text += f"📏 Рост: {profile['height']} см\n"
-        profile_text += f"⚖️ Вес: {profile['weight']} кг\n"
-        profile_text += f"👤 Пол: {profile['sex']}\n"
-        profile_text += f"🎯 Цели: {profile['goals']}\n"
-        profile_text += f"💪 Уровень подготовки: {profile['fitness_level']}\n"
-        profile_text += f"🏋️ Оборудование: {profile['equipment']}\n"
-
-        # Add update option
-        keyboard = [[InlineKeyboardButton("🔄 Обновить профиль", callback_data="update_profile_full")]]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-
-        await update.message.reply_text(profile_text, reply_markup=reply_markup)
-        logger.info(f"Successfully displayed profile for user {user_id}")
-
-    async def start_profile(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Start the profile creation process"""
-        user_id = update.effective_user.id
-        logger.info(f"Starting profile process for user {user_id}")
-        profile = self.db.get_user_profile(user_id)
-
-        logger.info(f"Retrieved user profile - ID: {user_id}, Profile: {profile}")
-
-        if profile:
-            # If profile exists, ask if user wants to update
+        # If user has gym access, show muscle group options
+        if 'зал' in equipment.lower():
             keyboard = [
-                [InlineKeyboardButton("✅ Да, обновить все поля", callback_data="update_profile_full")],
-                [InlineKeyboardButton("❌ Нет, оставить текущий", callback_data="keep_profile")]
+                [
+                    InlineKeyboardButton("Грудь + Бицепс", callback_data="muscle_грудь_бицепс"),
+                    InlineKeyboardButton("Спина + Трицепс", callback_data="muscle_спина_трицепс")
+                ],
+                [InlineKeyboardButton("Ноги", callback_data="muscle_ноги")]
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
-            logger.info(f"Existing profile check result: {bool(profile)}")
             await update.message.reply_text(
-                "У вас уже есть профиль. Хотите обновить его?",
+                "Поскольку у вас есть доступ в спортзал, вы можете выбрать группу мышц для тренировки:",
                 reply_markup=reply_markup
             )
-            logger.info(f"Displayed existing profile with update options for user {user_id}")
-            return ConversationHandler.END
 
-        # Clear any existing user data
-        context.user_data.clear()
-        await update.message.reply_text(messages.PROFILE_PROMPTS['age'])
-        return AGE
-
-    async def age(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle age input"""
-        try:
-            age = int(update.message.text)
-            if 12 <= age <= 100:
-                context.user_data['age'] = age
-                await update.message.reply_text(messages.PROFILE_PROMPTS['height'])
-                return HEIGHT
-            else:
-                await update.message.reply_text(messages.INVALID_AGE)
-                return AGE
-        except ValueError:
-            await update.message.reply_text(messages.INVALID_AGE)
-            return AGE
-
-    async def height(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle height input"""
-        try:
-            height = int(update.message.text)
-            if 100 <= height <= 250:
-                context.user_data['height'] = height
-                await update.message.reply_text(messages.PROFILE_PROMPTS['weight'])
-                return WEIGHT
-            else:
-                await update.message.reply_text(messages.INVALID_HEIGHT)
-                return HEIGHT
-        except ValueError:
-            await update.message.reply_text(messages.INVALID_HEIGHT)
-            return HEIGHT
-
-    async def weight(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle weight input"""
-        try:
-            weight = float(update.message.text)
-            if 30 <= weight <= 250:
-                context.user_data['weight'] = weight
-                await update.message.reply_text(
-                    messages.PROFILE_PROMPTS['sex'],
-                    reply_markup=get_sex_keyboard()
-                )
-                return SEX
-            else:
-                await update.message.reply_text(messages.INVALID_WEIGHT)
-                return WEIGHT
-        except ValueError:
-            await update.message.reply_text(messages.INVALID_WEIGHT)
-            return WEIGHT
-
-    async def sex(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle sex selection"""
-        sex = update.message.text
-        if sex in ['Мужской', 'Женский']:
-            context.user_data['sex'] = sex
-            await update.message.reply_text(
-                messages.PROFILE_PROMPTS['goals'],
-                reply_markup=get_goals_keyboard()
-            )
-            return GOALS
-        else:
-            await update.message.reply_text(messages.INVALID_INPUT)
-            return SEX
-
-    async def goals(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle fitness goals selection"""
-        goals = update.message.text
-        context.user_data['goals'] = goals
-        await update.message.reply_text(
-            messages.PROFILE_PROMPTS['fitness_level'],
-            reply_markup=get_fitness_level_keyboard()
-        )
-        return FITNESS_LEVEL
-
-    async def fitness_level(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle fitness level selection"""
-        level = update.message.text
-        context.user_data['fitness_level'] = level
-        await update.message.reply_text(
-            messages.PROFILE_PROMPTS['equipment'],
-            reply_markup=get_equipment_keyboard()
-        )
-        return EQUIPMENT
-
-    async def equipment(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle equipment selection and complete profile"""
-        equipment = update.message.text
-        context.user_data['equipment'] = equipment
-
-        # Save profile to database
-        await self.save_profile(update.effective_user.id, context.user_data, update.effective_user.username)
-
-        await update.message.reply_text(messages.PROFILE_COMPLETE)
         return ConversationHandler.END
 
     async def workout(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1219,7 +793,6 @@ class BotHandlers:
         self.db.start_active_workout(user_id, workout)
         self.db.clear_preview_workout(user_id)  # Clear the preview after starting
         await self._show_gym_exercise(update, context)
-
 
     async def check_subscription_middleware(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Check if user has active subscription or is in trial period"""
@@ -1761,33 +1334,17 @@ class BotHandlers:
         ]
 
     def register_handlers(self, application):
-        """Register all command handlers"""
-        # Register profile handler first (it has its own conversation handler)
-        handlers = self.get_handlers()
-        for handler in handlers:
-            if isinstance(handler, ConversationHandler) and getattr(handler, 'name', '') == 'profile_conversation':
-                application.add_handler(handler)
-                logger.info("Added profile conversation handler")
-                break
-        
-        # Calendar handlers to ensure proper handling
-        application.add_handler(CommandHandler("calendar", self.show_calendar))
-        application.add_handler(CallbackQueryHandler(
-            self.handle_calendar_callback,
-            pattern=r"^(calendar_\d{4}_\d{1,2}|date_\d{4}-\d{2}-\d{2})$"
-        ))
-
-        # Other command handlers
+        """Register all handlers"""
+        # Command handlers
         application.add_handler(CommandHandler("start", self.start))
         application.add_handler(CommandHandler("help", self.help))
-        application.add_handler(CommandHandler("progress", self.show_progress))
-        application.add_handler(CommandHandler("reminder", self.set_reminder))
+        application.add_handler(CommandHandler("view_profile", self.view_profile))
         application.add_handler(CommandHandler("workout", self.workout))
         application.add_handler(CommandHandler("start_workout", self.start_workout))
         application.add_handler(CommandHandler("start_gym_workout", self.start_gym_workout))
-        application.add_handler(CommandHandler("view_profile", self.view_profile))
-        application.add_handler(CommandHandler('create_muscle_workout', self.create_muscle_workout))
-        application.add_handler(CommandHandler('subscription', self.subscription)) # Added subscription command handler
+        application.add_handler(CommandHandler("progress", self.show_progress))
+        application.add_handler(CommandHandler("calendar", self.show_calendar))
+        application.add_handler(CommandHandler("reminder", self.set_reminder))
 
         # Add dedicated handler for profile updates outside of conversation
         application.add_handler(CallbackQueryHandler(self.handle_profile_callback, pattern=r"^(update_profile|update_profile_full|keep_profile)$"))
@@ -1804,7 +1361,6 @@ class BotHandlers:
 
         # Add middleware check for subscription
         application.add_handler(TypeHandler(Update, self.check_subscription_middleware), group=-1)
-
 
     async def cancel_profile(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Cancel profile creation"""

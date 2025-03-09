@@ -726,7 +726,8 @@ class BotHandlers:
                     InlineKeyboardButton("Грудь + Бицепс", callback_data="muscle_грудь_бицепс"),
                     InlineKeyboardButton("Спина + Трицепс", callback_data="muscle_спина_трицепс")
                 ],
-                [InlineKeyboardButton("Ноги", callback_data="muscle_ноги")]
+                [InlineKeyboardButton("Ноги", callback_data="muscle_ноги")],
+                [InlineKeyboardButton("Тренировка на все группы мышц", callback_data="muscle_все_группы")]
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
             await update.message.reply_text(
@@ -1220,12 +1221,18 @@ class BotHandlers:
             return
 
         # Extract muscle group from callback data
-        muscle_group = query.data.split('_', 1)[1] # Remove 'muscle_' prefix
+        muscle_group = query.data.split('_', 1)[1]  # Remove 'muscle_' prefix
         logger.info(f"Generating workout for muscle group: {muscle_group}")
 
         try:
             # Generate and cache the workout
-            workout = self.workout_manager.generate_muscle_group_workout(profile, muscle_group)
+            if muscle_group == 'все_группы':
+                # Generate a full body workout
+                workout = self.workout_manager.generate_gym_workout(profile)
+            else:
+                # Generate specific muscle group workout
+                workout = self.workout_manager.generate_muscle_group_workout(profile, muscle_group)
+
             if not workout:
                 logger.error(f"Failed to generate workout for muscle group: {muscle_group}")
                 await query.message.reply_text("Не удалось создать тренировку. Попробуйте еще раз.")
@@ -1502,17 +1509,3 @@ class BotHandlers:
             parse_mode='Markdown',
             disable_web_page_preview=True
         )
-
-    async def save_profile(self, user_id, profile_data, telegram_handle=None):
-        """Save user profile with trial period initialization"""
-        self.db.save_user_profile(user_id, profile_data, telegram_handle)
-
-        # Initialize trial subscription
-        trial_start = datetime.now()
-        trial_end = trial_start + timedelta(days=10)
-        subscription_data = {
-            'active': False,
-            'trial_start': trial_start.strftime('%Y-%m-%d'),
-            'trial_end': trial_end.strftime('%Y-%m-%d'),
-        }
-        self.db.save_subscription(user_id, subscription_data)

@@ -259,17 +259,8 @@ class WorkoutManager:
         logger.info(f"Final adapted exercise data: {exercise_data}")
         return exercise_data
 
-    def generate_gym_workout(self, user_profile, user_id=None):
-        """Generate a gym-specific workout with feedback adaptations"""
-        level_map = {
-            "Начинающий": "beginner",
-            "Средний": "intermediate",
-            "Продвинутый": "advanced"
-        }
-
-        level = level_map.get(user_profile.get('fitness_level', 'beginner'), 'beginner')
-        allowed_difficulties = self.difficulty_levels[level]
-
+    def _get_gym_workout_base(self, user_profile, allowed_difficulties):
+        """Get base parameters for gym workout generation"""
         # Get goal multipliers
         goal = user_profile.get('goals', 'общая физическая подготовка').lower()
         goal_mults = self.goal_multipliers.get(goal, self.goal_multipliers['общая физическая подготовка'])
@@ -295,7 +286,59 @@ class WorkoutManager:
 
         if len(gym_workouts) == 0:
             logger.warning("No gym exercises found")
+            return None, None, None, None
+
+        return gym_workouts, warmup_workouts, goal_mults, (level_weight_mult, gender_weight_mult)
+
+    def _process_gym_exercise(self, exercise, goal_mults, weight_mults):
+        """Process a single gym exercise with multipliers"""
+        level_weight_mult, gender_weight_mult = weight_mults
+        
+        # Get base values
+        base_reps = self._safe_float_convert(exercise.get('base_reps', 12))
+        base_weight = self._safe_float_convert(exercise.get('weight', 0))
+        base_sets = self._safe_float_convert(exercise.get('sets', 3))
+        base_sets_rest = self._safe_float_convert(exercise.get('base_sets_rest', 60))
+
+        # Apply multipliers
+        reps = round(base_reps * goal_mults['reps'])
+        weight = round(base_weight * goal_mults['weight'] * level_weight_mult * gender_weight_mult)
+        sets = max(1, round(base_sets + goal_mults['sets']))  # Ensure at least 1 set
+        sets_rest = round(base_sets_rest * goal_mults['sets_rest'])
+
+        exercise_data = {
+            'name': exercise['name'],
+            'target_muscle': exercise['target_muscle'],
+            'difficulty': exercise.get('difficulty', ''),
+            'reps': reps,
+            'weight': weight,
+            'sets': sets,
+            'sets_rest': sets_rest,
+            'current_set': 1
+        }
+
+        # Add GIF URL if available
+        self._add_gif_url(exercise, exercise_data)
+
+        return exercise_data
+
+    def generate_gym_workout(self, user_profile, user_id=None):
+        """Generate a gym-specific workout with feedback adaptations"""
+        level_map = {
+            "Начинающий": "beginner",
+            "Средний": "intermediate",
+            "Продвинутый": "advanced"
+        }
+
+        level = level_map.get(user_profile.get('fitness_level', 'beginner'), 'beginner')
+        allowed_difficulties = self.difficulty_levels[level]
+
+        # Get base workout parameters
+        base_params = self._get_gym_workout_base(user_profile, allowed_difficulties)
+        if base_params[0] is None:
             return self._get_default_workout()
+
+        gym_workouts, warmup_workouts, goal_mults, weight_mults = base_params
 
         exercises = []
         used_exercises = set()
@@ -310,36 +353,7 @@ class WorkoutManager:
             )
 
             for exercise in selected_exercises:
-                # Get base values
-                base_reps = self._safe_float_convert(exercise.get('base_reps', 12))
-                base_weight = self._safe_float_convert(exercise.get('weight', 0))
-                base_sets = self._safe_float_convert(exercise.get('sets', 3))
-                base_sets_rest = self._safe_float_convert(exercise.get('base_sets_rest', 60))
-
-                # Apply multipliers
-                reps = round(base_reps * goal_mults['reps'])
-                weight = round(base_weight * goal_mults['weight'] * level_weight_mult * gender_weight_mult)
-                sets = max(1, round(base_sets + goal_mults['sets']))  # Ensure at least 1 set
-                sets_rest = round(base_sets_rest * goal_mults['sets_rest'])
-
-                exercise_data = {
-                    'name': exercise['name'],
-                    'target_muscle': exercise['target_muscle'],
-                    'difficulty': exercise.get('difficulty', ''),
-                    'reps': reps,
-                    'weight': weight,
-                    'sets': sets,
-                    'sets_rest': sets_rest,
-                    'current_set': 1
-                }
-
-                # Add GIF URL if available
-                gif_url = exercise.get('gif', '')
-                if pd.notna(gif_url) and isinstance(gif_url, str):
-                    gif_url = gif_url.strip()
-                    if gif_url and (gif_url.startswith('http://') or gif_url.startswith('https://')):
-                        exercise_data['gif_url'] = gif_url
-
+                exercise_data = self._process_gym_exercise(exercise, goal_mults, weight_mults)
                 exercises.append(exercise_data)
                 used_exercises.add(exercise['name'])
 
@@ -370,20 +384,6 @@ class WorkoutManager:
         level = level_map.get(user_profile.get('fitness_level', 'beginner'), 'beginner')
         allowed_difficulties = self.difficulty_levels[level]
 
-        # Get goal multipliers
-        goal = user_profile.get('goals', 'общая физическая подготовка').lower()
-        goal_mults = self.goal_multipliers.get(goal, self.goal_multipliers['общая физическая подготовка'])
-
-        # Get level and gender multipliers for weight
-        level_weight_mult = self.level_weight_multipliers.get(
-            user_profile.get('fitness_level', 'начинающий').lower(),
-            self.level_weight_multipliers['начинающий']
-        )
-        gender_weight_mult = self.gender_weight_multipliers.get(
-            user_profile.get('sex', 'мужской').lower(),
-            self.gender_weight_multipliers['мужской']
-        )
-
         # Get the workout structure for the specified muscle group
         if muscle_group not in self.muscle_group_workouts:
             logger.warning(f"Invalid muscle group: {muscle_group}")
@@ -391,14 +391,12 @@ class WorkoutManager:
 
         structure = self.muscle_group_workouts[muscle_group]
 
-        # Filter exercises for gym equipment
-        gym_workouts = self.workouts_df[
-            (self.workouts_df['equipment'].str.lower() == 'зал') &
-            (self.workouts_df['difficulty'].str.lower().isin([d.lower() for d in allowed_difficulties]))
-        ]
+        # Get base workout parameters
+        base_params = self._get_gym_workout_base(user_profile, allowed_difficulties)
+        if base_params[0] is None:
+            return self._get_default_workout()
 
-        # For warmup, use only gym warmup exercises
-        warmup_workouts = gym_workouts[gym_workouts['target_muscle'].str.lower() == 'разминка']
+        gym_workouts, warmup_workouts, goal_mults, weight_mults = base_params
 
         exercises = []
         used_exercises = set()
@@ -413,36 +411,7 @@ class WorkoutManager:
             )
 
             for exercise in selected_exercises:
-                # Get base values
-                base_reps = self._safe_float_convert(exercise.get('base_reps', 12))
-                base_weight = self._safe_float_convert(exercise.get('weight', 0))
-                base_sets = self._safe_float_convert(exercise.get('sets', 3))
-                base_sets_rest = self._safe_float_convert(exercise.get('base_sets_rest', 60))
-
-                # Apply multipliers
-                reps = round(base_reps * goal_mults['reps'])
-                weight = round(base_weight * goal_mults['weight'] * level_weight_mult * gender_weight_mult)
-                sets = max(1, round(base_sets + goal_mults['sets']))  # Ensure at least 1 set
-                sets_rest = round(base_sets_rest * goal_mults['sets_rest'])
-
-                exercise_data = {
-                    'name': exercise['name'],
-                    'target_muscle': exercise['target_muscle'],
-                    'difficulty': exercise.get('difficulty', ''),
-                    'reps': reps,
-                    'weight': weight,
-                    'sets': sets,
-                    'sets_rest': sets_rest,
-                    'current_set': 1
-                }
-
-                # Add GIF URL if available
-                gif_url = exercise.get('gif', '')
-                if pd.notna(gif_url) and isinstance(gif_url, str):
-                    gif_url = gif_url.strip()
-                    if gif_url and (gif_url.startswith('http://') or gif_url.startswith('https://')):
-                        exercise_data['gif_url'] = gif_url
-
+                exercise_data = self._process_gym_exercise(exercise, goal_mults, weight_mults)
                 exercises.append(exercise_data)
                 used_exercises.add(exercise['name'])
 
@@ -574,6 +543,7 @@ class WorkoutManager:
             'current_exercise': 0,
             'workout_type': 'gym'
         }
+
     def generate_bodyweight_workout(self, user_profile, user_id=None):
         """Generate a bodyweight workout with feedback adaptations"""
         level = user_profile.get('fitness_level', 'начинающий').lower()
@@ -625,11 +595,7 @@ class WorkoutManager:
                 }
 
                 # Add GIF URL if available
-                gif_url = exercise.get('gif', '')
-                if pd.notna(gif_url) and isinstance(gif_url, str):
-                    gif_url = gif_url.strip()
-                    if gif_url and (gif_url.startswith('http://') or gif_url.startswith('https://')):
-                        exercise_data['gif_url'] = gif_url
+                self._add_gif_url(exercise, exercise_data)
 
                 exercises.append(exercise_data)
                 used_exercises.add(exercise['name'])
@@ -644,8 +610,6 @@ class WorkoutManager:
 
         # Calculate workout level circuits rest based on the level multiplier
         base_circuits_rest = 60  # Base value for circuits rest
-        level = user_profile.get('fitness_level', 'начинающий').lower()
-        level_mults = self.level_multipliers.get(level, self.level_multipliers['начинающий'])
         circuits_rest = round(base_circuits_rest * level_mults['circuits_rest'])
 
         # If user is tired, increase rest time
@@ -663,19 +627,13 @@ class WorkoutManager:
             'circuits_rest': circuits_rest
         }
 
-    def generate_workout_overview(self, profile):
-        """Generate a detailed overview of the workout program"""
-        # This method is now deprecated as we generate overviews directly from workouts
-        # using _generate_gym_overview and _generate_bodyweight_overview
-        equipment = profile.get('equipment', 'Только вес тела').lower()
-        goal = profile.get('goals', 'общая физическая подготовка').lower()
-
-        if 'зал' in equipment:
-            workout = self.generate_gym_workout(profile)
-            return self._generate_gym_overview(workout)
-        else:
-            workout = self.generate_bodyweight_workout(profile)
-            return self._generate_bodyweight_overview(workout, goal)
+    def _add_gif_url(self, source_exercise, target_exercise):
+        """Add GIF URL to exercise data if available"""
+        gif_url = source_exercise.get('gif', '')
+        if pd.notna(gif_url) and isinstance(gif_url, str):
+            gif_url = gif_url.strip()
+            if gif_url and (gif_url.startswith('http://') or gif_url.startswith('https://')):
+                target_exercise['gif_url'] = gif_url
 
     def _generate_gym_overview(self, workout):
         """Generate detailed overview for gym workout"""
@@ -699,7 +657,6 @@ class WorkoutManager:
                     overview += f"  🏋️ Вес: {ex['weight']} кг\n"
                 overview += f"  ⏰ Отдых: {ex['sets_rest']} сек\n\n"
 
-        overview += "\n📱 Используйте /start_gym_workout для начала тренировки"
         return overview
 
     def _generate_bodyweight_overview(self, workout, goal):
@@ -727,5 +684,4 @@ class WorkoutManager:
                 overview += f" x {ex['circuits']} кругов\n"
                 overview += f"  ⏰ Отдых: {ex['exercises_rest']} сек\n\n"
 
-        overview += "\n📱 Используйте /start_workout для начала тренировки"
         return overview

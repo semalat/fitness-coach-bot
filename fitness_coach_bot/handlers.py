@@ -741,7 +741,7 @@ class BotHandlers:
         return ConversationHandler.END
 
     async def workout(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle the /workout command - show workout overview"""
+        """Handle the /workout command - show workout preview"""
         user_id = update.effective_user.id
         profile = self.db.get_user_profile(user_id)
 
@@ -752,6 +752,40 @@ class BotHandlers:
         # Check equipment type
         equipment = profile.get('equipment', '').lower()
 
+        if 'зал' in equipment:
+            # Show muscle group selection for gym users
+            keyboard = [
+                [
+                    InlineKeyboardButton("Грудь + Бицепс", callback_data="preview_грудь_бицепс"),
+                    InlineKeyboardButton("Спина + Трицепс", callback_data="preview_спина_трицепс")
+                ],
+                [InlineKeyboardButton("Ноги", callback_data="preview_ноги")],
+                [InlineKeyboardButton("Тренировка на все группы мышц", callback_data="preview_все_группы")]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            await update.message.reply_text(
+                "Выберите группу мышц для тренировки:",
+                reply_markup=reply_markup
+            )
+            return
+
+        # For non-gym users, generate and show bodyweight workout preview
+        workout = self.workout_manager.generate_bodyweight_workout(profile)
+        self.db.save_preview_workout(user_id, workout)
+        overview = self.workout_manager._generate_bodyweight_overview(workout)
+        overview += "\n📱 Используйте /start_workout для начала тренировки"
+        await update.message.reply_text(overview)
+
+    async def start_workout(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Start a workout session"""
+        user_id = update.effective_user.id
+        profile = self.db.get_user_profile(user_id)
+
+        if not profile:
+            await update.message.reply_text("Сначала создайте профиль командой /profile")
+            return
+
+        equipment = profile.get('equipment', '').lower()
         if 'зал' in equipment:
             # Show muscle group selection for gym users
             keyboard = [
@@ -769,40 +803,9 @@ class BotHandlers:
             )
             return
 
-        # For non-gym users, generate bodyweight workout as before
-        goal = profile.get('goals', 'общая физическая подготовка').lower()
+        # For non-gym users, start bodyweight workout
         workout = self.workout_manager.generate_bodyweight_workout(profile)
-        self.db.save_preview_workout(user_id, workout)
-        overview = self.workout_manager._generate_bodyweight_overview(workout, goal)
-        await update.message.reply_text(overview)
-
-    async def start_workout(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Start a bodyweight workout session"""
-        user_id = update.effective_user.id
-        profile = self.db.get_user_profile(user_id)
-
-        if not profile:
-            await update.message.reply_text("Сначала создайте профиль командой /profile")
-            return
-
-        equipment = profile.get('equipment', '').lower()
-        if 'зал' in equipment:
-            await update.message.reply_text(
-                "Ваш профиль настроен для тренировок в зале. "
-                "Используйте /start_gym_workout для начала тренировки в зале."
-            )
-            return
-
-        # Get the previewed workout or generate new if none exists
-        workout = self.db.get_preview_workout(user_id)
-        if not workout:
-            logger.info(f"No preview workout found for user {user_id}, generating new workout")
-            workout = self.workout_manager.generate_bodyweight_workout(profile)
-        else:
-            logger.info(f"Using previewed workout for user {user_id}")
-
         self.db.start_active_workout(user_id, workout)
-        self.db.clear_preview_workout(user_id)  # Clear the preview after starting
         await self._show_gym_exercise(update, context)
 
     async def check_subscription_middleware(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1231,8 +1234,8 @@ class BotHandlers:
             return
 
         # Extract muscle group from callback data
-        muscle_group = query.data.split('_', 1)[1]  # Remove 'muscle_' prefix
-        logger.info(f"Generating workout for muscle group: {muscle_group}")
+        callback_type, muscle_group = query.data.split('_', 1)  # Split into type and muscle group
+        logger.info(f"Callback type: {callback_type}, muscle group: {muscle_group}")
 
         try:
             # Generate workout based on selection
@@ -1246,28 +1249,17 @@ class BotHandlers:
                 await query.message.reply_text("Не удалось создать тренировку. Попробуйте еще раз.")
                 return
 
-            # Check if this was triggered by start_gym_workout
-            command_message = query.message.reply_to_message.text if query.message.reply_to_message else ""
-            is_start_command = "/start_gym_workout" in command_message
-
-            if is_start_command:
-                # Start the workout immediately
+            if callback_type == 'preview':
+                # Save as preview and show overview
+                self.db.save_preview_workout(user_id, workout)
+                overview = self.workout_manager._generate_gym_overview(workout)
+                overview += "\n📱 Используйте /start_workout для начала тренировки"
+                await query.message.edit_text(overview)
+            else:
+                # Start workout immediately
                 self.db.start_active_workout(user_id, workout)
                 await query.message.delete()
                 await self._show_gym_exercise(update, context)
-            else:
-                # Just show preview
-                self.db.save_preview_workout(user_id, workout)
-                logger.info(f"Successfully generated and saved preview workout for user {user_id}")
-
-                # Generate overview
-                overview = self.workout_manager._generate_gym_overview(workout)
-                overview += "\n📱 Используйте /start_gym_workout для начала тренировки"
-
-                # Delete the selection message and send the workout overview
-                await query.message.delete()
-                await query.message.reply_text(overview)
-                logger.info(f"Sent workout overview to user {user_id}")
 
         except Exception as e:
             logger.error(f"Error generating muscle group workout: {str(e)}", exc_info=True)
@@ -1324,12 +1316,11 @@ class BotHandlers:
             CommandHandler('help', self.help),
             CommandHandler('workout', self.workout),
             CommandHandler('start_workout', self.start_workout),
-            CommandHandler('start_gym_workout', self.start_gym_workout),
             CommandHandler('view_profile', self.view_profile),
             CommandHandler('progress', self.show_progress),
             CommandHandler('reminder', self.set_reminder),
             CommandHandler('calendar', self.show_calendar),
-            CommandHandler('subscription', self.subscription), # Added subscription command handler
+            CommandHandler('subscription', self.subscription),
             profile_handler,
             # Add workout feedback handler
             CallbackQueryHandler(
@@ -1351,10 +1342,9 @@ class BotHandlers:
                 self.handle_calendar_callback,
                 pattern='^(calendar_|date_)$'
             ),
-            CommandHandler('create_muscle_workout', self.create_muscle_workout),
             CallbackQueryHandler(
                 self.handle_muscle_group_selection,
-                pattern='^muscle_'
+                pattern='^(muscle_|preview_)'
             ),
             CallbackQueryHandler(self.handle_progress_callback, pattern='^(progress_weekly|progress_monthly|achievements|workout_history|intensity_analysis|back_to_dashboard)$')
         ]
@@ -1375,7 +1365,6 @@ class BotHandlers:
         application.add_handler(CommandHandler("view_profile", self.view_profile))
         application.add_handler(CommandHandler("workout", self.workout))
         application.add_handler(CommandHandler("start_workout", self.start_workout))
-        application.add_handler(CommandHandler("start_gym_workout", self.start_gym_workout))
         application.add_handler(CommandHandler("progress", self.show_progress))
         application.add_handler(CommandHandler("calendar", self.show_calendar))
         application.add_handler(CommandHandler("reminder", self.set_reminder))
@@ -1392,7 +1381,7 @@ class BotHandlers:
         ))
         application.add_handler(CallbackQueryHandler(self.handle_reminder_callback, pattern=r"^reminder_"))
         application.add_handler(CallbackQueryHandler(self.handle_progress_callback, pattern=r"^(progress_weekly|progress_monthly|achievements|workout_history|intensity_analysis|back_to_dashboard)$"))
-        application.add_handler(CallbackQueryHandler(self.handle_muscle_group_selection, pattern=r"^muscle_"))
+        application.add_handler(CallbackQueryHandler(self.handle_muscle_group_selection, pattern=r"^(muscle_|preview_)"))
 
         # Add middleware check for subscription
         application.add_handler(TypeHandler(Update, self.check_subscription_middleware), group=-1)
@@ -1453,78 +1442,4 @@ class BotHandlers:
 
         await query.message.reply_text(
             "Спасибо за отзыв! Это поможет нам подобрать более подходящие тренировки."
-        )
-
-    async def check_subscription_middleware(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
-        """Check if user has active subscription or is in trial period"""
-        if not update.effective_user:
-            return True
-
-        user_id = update.effective_user.id
-        
-        # Commands that don't require subscription check
-        free_commands = ['/start', '/help', '/subscription', '/profile']
-        if update.message and update.message.text:
-            command = update.message.text.split()[0].lower()
-            if command in free_commands:
-                return True
-
-        has_access = self.db.check_subscription_status(user_id)
-        if not has_access:
-            try:
-                await update.message.reply_text(
-                    "⚠️ Ваш пробный период закончился или подписка истекла.\n"
-                    "Используйте команду /subscription для получения информации о подписке."
-                )
-            except AttributeError:
-                # Handle case where update.message is None (e.g., in callback queries)
-                if update.callback_query:
-                    await update.callback_query.message.reply_text(
-                        "⚠️ Ваш пробный период закончился или подписка истекла.\n"
-                        "Используйте команду /subscription для получения информации о подписке."
-                    )
-            return False
-        return True
-
-    async def subscription(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle subscription command"""
-        user_id = update.effective_user.id
-        subscription_data = self.db.get_subscription(user_id)
-
-        if subscription_data and subscription_data.get('active', False):
-            expiry_date = datetime.strptime(subscription_data['expiry_date'], '%Y-%m-%d')
-            days_left = (expiry_date - datetime.now()).days
-
-            message = (
-                "ℹ️ Информация о вашей подписке:\n\n"
-                f"✅ Статус: Активная\n"
-                f"📅 Действует до: {expiry_date.strftime('%d.%m.%Y')}\n"
-                f"⏳ Осталось дней: {days_left}\n\n"
-                "Спасибо, что пользуетесь нашим ботом! 🙏"
-            )
-        else:
-            user_profile = self.db.get_user_profile(user_id)
-            if user_profile:
-                profile_created = datetime.strptime(user_profile.get('last_updated', '2000-01-01'), '%Y-%m-%d %H:%M:%S')
-                trial_end = profile_created + timedelta(days=10)
-                days_left = (trial_end - datetime.now()).days
-
-                if days_left > 0:
-                    trial_message = f"\n\n⏳ Ваш пробный период: осталось {days_left} дней"
-                else:
-                    trial_message = "\n\n⚠️ Ваш пробный период закончился"
-            else:
-                trial_message = ""
-
-            message = f"{SUBSCRIPTION_MESSAGE}{trial_message}\n\n[Оформить подписку](payment_link)"
-
-        # Create subscription button
-        keyboard = [[InlineKeyboardButton("💳 Оформить подписку", callback_data="subscribe")]]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-
-        await update.message.reply_text(
-            message,
-            reply_markup=reply_markup,
-            parse_mode='Markdown',
-            disable_web_page_preview=True
         )

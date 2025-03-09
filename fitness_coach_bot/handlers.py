@@ -122,17 +122,20 @@ class BotHandlers:
             )
             return
 
-        # Get the previewed workout or generate new if none exists
-        workout = self.db.get_preview_workout(user_id)
-        if not workout:
-            logger.info(f"No preview workout found for user {user_id}, generating new workout")
-            workout = self.workout_manager.generate_gym_workout(profile)
-        else:
-            logger.info(f"Using previewed workout for user {user_id}")
-
-        self.db.start_active_workout(user_id, workout)
-        self.db.clear_preview_workout(user_id)  # Clear the preview after starting
-        await self._show_gym_exercise(update, context)
+        # Show muscle group selection
+        keyboard = [
+            [
+                InlineKeyboardButton("Грудь + Бицепс", callback_data="muscle_грудь_бицепс"),
+                InlineKeyboardButton("Спина + Трицепс", callback_data="muscle_спина_трицепс")
+            ],
+            [InlineKeyboardButton("Ноги", callback_data="muscle_ноги")],
+            [InlineKeyboardButton("Тренировка на все группы мышц", callback_data="muscle_все_группы")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await update.message.reply_text(
+            "Выберите группу мышц для тренировки:",
+            reply_markup=reply_markup
+        )
 
     async def _show_gym_exercise(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Display current exercise with controls"""
@@ -746,24 +749,31 @@ class BotHandlers:
             await update.message.reply_text("Сначала создайте профиль командой /profile")
             return
 
-        # Generate and cache the workout
+        # Check equipment type
         equipment = profile.get('equipment', '').lower()
+
+        if 'зал' in equipment:
+            # Show muscle group selection for gym users
+            keyboard = [
+                [
+                    InlineKeyboardButton("Грудь + Бицепс", callback_data="muscle_грудь_бицепс"),
+                    InlineKeyboardButton("Спина + Трицепс", callback_data="muscle_спина_трицепс")
+                ],
+                [InlineKeyboardButton("Ноги", callback_data="muscle_ноги")],
+                [InlineKeyboardButton("Тренировка на все группы мышц", callback_data="muscle_все_группы")]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            await update.message.reply_text(
+                "Выберите группу мышц для тренировки:",
+                reply_markup=reply_markup
+            )
+            return
+
+        # For non-gym users, generate bodyweight workout as before
         goal = profile.get('goals', 'общая физическая подготовка').lower()
-
-        if 'зал' in equipment:
-            workout = self.workout_manager.generate_gym_workout(profile)
-        else:
-            workout = self.workout_manager.generate_bodyweight_workout(profile)
-
-        # Save the preview workout
+        workout = self.workout_manager.generate_bodyweight_workout(profile)
         self.db.save_preview_workout(user_id, workout)
-
-        # Generate overview from the cached workout
-        if 'зал' in equipment:
-            overview = self.workout_manager._generate_gym_overview(workout)
-        else:
-            overview = self.workout_manager._generate_bodyweight_overview(workout, goal)
-
+        overview = self.workout_manager._generate_bodyweight_overview(workout, goal)
         await update.message.reply_text(overview)
 
     async def start_workout(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1225,12 +1235,10 @@ class BotHandlers:
         logger.info(f"Generating workout for muscle group: {muscle_group}")
 
         try:
-            # Generate and cache the workout
+            # Generate workout based on selection
             if muscle_group == 'все_группы':
-                # Generate a full body workout
                 workout = self.workout_manager.generate_gym_workout(profile)
             else:
-                # Generate specific muscle group workout
                 workout = self.workout_manager.generate_muscle_group_workout(profile, muscle_group)
 
             if not workout:
@@ -1238,17 +1246,28 @@ class BotHandlers:
                 await query.message.reply_text("Не удалось создать тренировку. Попробуйте еще раз.")
                 return
 
-            self.db.save_preview_workout(user_id, workout)
-            logger.info(f"Successfully generated and saved preview workout for user {user_id}")
+            # Check if this was triggered by start_gym_workout
+            command_message = query.message.reply_to_message.text if query.message.reply_to_message else ""
+            is_start_command = "/start_gym_workout" in command_message
 
-            # Generate overview
-            overview = self.workout_manager._generate_gym_overview(workout)
-            overview += "\n📱 Используйте /start_gym_workout для начала тренировки"
+            if is_start_command:
+                # Start the workout immediately
+                self.db.start_active_workout(user_id, workout)
+                await query.message.delete()
+                await self._show_gym_exercise(update, context)
+            else:
+                # Just show preview
+                self.db.save_preview_workout(user_id, workout)
+                logger.info(f"Successfully generated and saved preview workout for user {user_id}")
 
-            # Delete the selection message and send the workout overview
-            await query.message.delete()
-            await query.message.reply_text(overview)
-            logger.info(f"Sent workout overview to user {user_id}")
+                # Generate overview
+                overview = self.workout_manager._generate_gym_overview(workout)
+                overview += "\n📱 Используйте /start_gym_workout для начала тренировки"
+
+                # Delete the selection message and send the workout overview
+                await query.message.delete()
+                await query.message.reply_text(overview)
+                logger.info(f"Sent workout overview to user {user_id}")
 
         except Exception as e:
             logger.error(f"Error generating muscle group workout: {str(e)}", exc_info=True)

@@ -290,13 +290,8 @@ class WorkoutManager:
             (self.workouts_df['difficulty'].str.lower().isin([d.lower() for d in allowed_difficulties]))
         ]
 
-        # For warmup, allow bodyweight exercises if no gym warmup found
+        # For warmup, use only gym warmup exercises
         warmup_workouts = gym_workouts[gym_workouts['target_muscle'].str.lower() == 'разминка']
-        if len(warmup_workouts) == 0:
-            warmup_workouts = self.workouts_df[
-                (self.workouts_df['equipment'].str.lower() == 'нет') &
-                (self.workouts_df['target_muscle'].str.lower() == 'разминка')
-            ]
 
         if len(gym_workouts) == 0:
             logger.warning("No gym exercises found")
@@ -402,13 +397,8 @@ class WorkoutManager:
             (self.workouts_df['difficulty'].str.lower().isin([d.lower() for d in allowed_difficulties]))
         ]
 
-        # For warmup, allow bodyweight exercises if no gym warmup found
+        # For warmup, use only gym warmup exercises
         warmup_workouts = gym_workouts[gym_workouts['target_muscle'].str.lower() == 'разминка']
-        if len(warmup_workouts) == 0:
-            warmup_workouts = self.workouts_df[
-                (self.workouts_df['equipment'].str.lower() == 'нет') &
-                (self.workouts_df['target_muscle'].str.lower() == 'разминка')
-            ]
 
         exercises = []
         used_exercises = set()

@@ -438,6 +438,7 @@ class Database:
         user = self.users.get(user_id, {})
 
         if not user:
+            logger.warning(f"User {user_id} not found in database during subscription check")
             return False
 
         subscription = user.get('subscription', {})
@@ -450,36 +451,66 @@ class Database:
         if subscription.get('active', False):
             # Check if subscription is still valid
             expiry_date = datetime.strptime(subscription.get('expiry_date', '2000-01-01'), '%Y-%m-%d')
-            return datetime.now() <= expiry_date
+            is_valid = datetime.now() <= expiry_date
+            logger.info(f"User {user_id} subscription valid: {is_valid}, expires: {expiry_date}")
+            return is_valid
 
         # Check trial period
         profile_created = datetime.strptime(user.get('last_updated', '2000-01-01'), '%Y-%m-%d %H:%M:%S')
         trial_end = profile_created + timedelta(days=10)
-        return datetime.now() <= trial_end
+        in_trial = datetime.now() <= trial_end
+        logger.info(f"User {user_id} in trial period: {in_trial}, trial ends: {trial_end}")
+        return in_trial
         
     def add_premium_status(self, user_id):
         """Add premium access to user subscription"""
         user_id = str(user_id)
+        logger.info(f"Attempting to add premium status to user {user_id}")
+        
         if user_id not in self.users:
             logger.warning(f"No user profile found for user {user_id} when adding premium access")
             return False
             
         if 'subscription' not in self.users[user_id]:
+            logger.info(f"Creating new subscription entry for user {user_id}")
             self.users[user_id]['subscription'] = {}
             
+        logger.info(f"Setting premium=True for user {user_id}")
         self.users[user_id]['subscription']['premium'] = True
-        self._save_to_file('users.json', self.users)
-        logger.info(f"User {user_id} granted premium access")
-        return True
+        
+        # Log user data before saving
+        logger.info(f"User data before save: {self.users[user_id]}")
+        
+        try:
+            self._save_to_file('users.json', self.users)
+            logger.info(f"User {user_id} granted premium access - save successful")
+            
+            # Double-check that premium status was actually saved
+            reloaded_user = self._load_from_file('users.json').get(user_id, {})
+            reloaded_premium = reloaded_user.get('subscription', {}).get('premium', False)
+            logger.info(f"Verified premium status for user {user_id}: {reloaded_premium}")
+            
+            return True
+        except Exception as e:
+            logger.error(f"Error saving premium status: {e}")
+            return False
         
     def remove_premium_status(self, user_id):
         """Remove premium access from user subscription"""
         user_id = str(user_id)
+        logger.info(f"Attempting to remove premium status from user {user_id}")
+        
         if user_id not in self.users or 'subscription' not in self.users[user_id]:
             logger.warning(f"No user profile or subscription found for user {user_id} when removing premium access")
             return False
             
+        logger.info(f"Setting premium=False for user {user_id}")
         self.users[user_id]['subscription']['premium'] = False
-        self._save_to_file('users.json', self.users)
-        logger.info(f"Premium access removed for user {user_id}")
-        return True
+        
+        try:
+            self._save_to_file('users.json', self.users)
+            logger.info(f"Premium access removed for user {user_id} - save successful")
+            return True
+        except Exception as e:
+            logger.error(f"Error removing premium status: {e}")
+            return False

@@ -28,6 +28,8 @@ COMMANDS = {
     'reminder': 'Установить напоминание',
     'subscription': 'Информация о подписке',
     'help': 'Получить помощь',
+    # Admin commands - Hidden from regular users but available to admins
+    'premium': 'Управление премиум-доступом (только для админов)',
 }
 
 SUBSCRIPTION_MESSAGE = """

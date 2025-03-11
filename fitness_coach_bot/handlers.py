@@ -1459,15 +1459,23 @@ class BotHandlers:
         """Admin command to manage premium access (add or remove users)"""
         user_id = update.effective_user.id
         
+        # Debug logging for admin command
+        logger.info(f"Premium command called by user {user_id}")
+        
         # List of admin user IDs - should be moved to config in a real application
         admin_ids = ["5311473961", "413662602"]  # Convert to string for consistency
         
         if str(user_id) not in admin_ids:
-            # Just silently ignore for non-admin users
+            # Log unauthorized attempt
+            logger.warning(f"Unauthorized premium command attempt by user {user_id}")
+            await update.message.reply_text(
+                "⛔ Извините, у вас нет доступа к этой команде."
+            )
             return
             
         # Check if command has arguments
         if not context.args or len(context.args) < 2:
+            logger.info(f"Admin {user_id} used premium command without proper arguments")
             await update.message.reply_text(
                 "⚠️ Формат команды: /premium add|remove USER_ID"
             )
@@ -1476,17 +1484,24 @@ class BotHandlers:
         action = context.args[0].lower()
         target_user_id = context.args[1]
         
+        logger.info(f"Admin {user_id} using premium command: {action} for user {target_user_id}")
+        
         if action == "add":
             result = self.db.add_premium_status(target_user_id)
             if result:
+                logger.info(f"Successfully added premium status to user {target_user_id}")
                 await update.message.reply_text(f"✅ Премиум статус добавлен для пользователя {target_user_id}.")
             else:
+                logger.error(f"Failed to add premium status to user {target_user_id}")
                 await update.message.reply_text(f"❌ Не удалось добавить премиум статус. Возможно, профиль не существует.")
         elif action == "remove":
             result = self.db.remove_premium_status(target_user_id)
             if result:
+                logger.info(f"Successfully removed premium status from user {target_user_id}")
                 await update.message.reply_text(f"✅ Премиум статус удален для пользователя {target_user_id}.")
             else:
+                logger.error(f"Failed to remove premium status from user {target_user_id}")
                 await update.message.reply_text(f"❌ Не удалось удалить премиум статус.")
         else:
+            logger.warning(f"Admin {user_id} used invalid action: {action}")
             await update.message.reply_text("⚠️ Неверная команда. Используйте 'add' или 'remove'.")

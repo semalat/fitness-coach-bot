@@ -7,11 +7,11 @@ from telegram.error import Conflict, NetworkError, TimedOut
 import logging
 import time
 from telegram.ext import ApplicationBuilder, Application
-from config import TOKEN, COMMANDS
-from database import Database
-from workout_manager import WorkoutManager
-from reminder import ReminderManager
-from handlers import BotHandlers
+from fitness_coach_bot.config import TOKEN, COMMANDS
+from fitness_coach_bot.database import Database
+from fitness_coach_bot.workout_manager import WorkoutManager
+from fitness_coach_bot.reminder import ReminderManager
+from fitness_coach_bot.handlers import BotHandlers
 
 # Set up logging with more detailed format
 logging.basicConfig(

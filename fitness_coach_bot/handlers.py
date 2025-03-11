@@ -5,19 +5,21 @@ from telegram.ext import (
     MessageHandler, filters, TypeHandler
 )
 import logging
-import messages
+from fitness_coach_bot import messages
 from datetime import datetime, timedelta
-from config import AGE, HEIGHT, WEIGHT, SEX, GOALS, FITNESS_LEVEL, EQUIPMENT, SUBSCRIPTION_MESSAGE
-from keyboards import (
+from fitness_coach_bot.config import AGE, HEIGHT, WEIGHT, SEX, GOALS, FITNESS_LEVEL, EQUIPMENT, SUBSCRIPTION_MESSAGE
+from fitness_coach_bot.keyboards import (
     get_sex_keyboard, get_goals_keyboard, get_fitness_level_keyboard,
-    get_equipment_keyboard, get_calendar_keyboard, get_reminder_keyboard
+    get_equipment_keyboard, get_muscle_group_keyboard, get_workout_feedback_keyboard,
+    get_reminder_keyboard, get_calendar_keyboard
 )
 
 logger = logging.getLogger(__name__)
 
 class BotHandlers:
-    def __init__(self, database, workout_manager, reminder_manager):
-        self.db = database
+    def __init__(self, database, workout_manager=None, reminder_manager=None):
+        """Initialize handlers with database and managers"""
+        self.db = database  # Make sure database is assigned to self.db
         self.workout_manager = workout_manager
         self.reminder_manager = reminder_manager
 
@@ -1459,15 +1461,22 @@ class BotHandlers:
         """Admin command to manage premium access (add or remove users)"""
         user_id = update.effective_user.id
         
+        # Enhanced debug logging
+        logging.info(f"Premium access command called by user {user_id}")
+        
         # List of admin user IDs - should be moved to config in a real application
         admin_ids = ["5311473961", "413662602"]  # Convert to string for consistency
         
         if str(user_id) not in admin_ids:
             # Just silently ignore for non-admin users
+            logging.info(f"Non-admin user {user_id} attempted to use premium command")
             return
+        
+        logging.info(f"Admin user {user_id} accessed premium command")
             
         # Check if command has arguments
         if not context.args or len(context.args) < 2:
+            logging.info("Premium command missing arguments")
             await update.message.reply_text(
                 "⚠️ Формат команды: /premium add|remove USER_ID"
             )
@@ -1476,17 +1485,24 @@ class BotHandlers:
         action = context.args[0].lower()
         target_user_id = context.args[1]
         
+        logging.info(f"Premium command action: {action}, target user: {target_user_id}")
+        
         if action == "add":
             result = self.db.add_premium_status(target_user_id)
             if result:
                 await update.message.reply_text(f"✅ Премиум статус добавлен для пользователя {target_user_id}.")
+                logging.info(f"Premium status added for user {target_user_id}")
             else:
                 await update.message.reply_text(f"❌ Не удалось добавить премиум статус. Возможно, профиль не существует.")
+                logging.error(f"Failed to add premium status for user {target_user_id}")
         elif action == "remove":
             result = self.db.remove_premium_status(target_user_id)
             if result:
                 await update.message.reply_text(f"✅ Премиум статус удален для пользователя {target_user_id}.")
+                logging.info(f"Premium status removed for user {target_user_id}")
             else:
                 await update.message.reply_text(f"❌ Не удалось удалить премиум статус.")
+                logging.error(f"Failed to remove premium status for user {target_user_id}")
         else:
             await update.message.reply_text("⚠️ Неверная команда. Используйте 'add' или 'remove'.")
+            logging.warning(f"Invalid premium command action: {action}")

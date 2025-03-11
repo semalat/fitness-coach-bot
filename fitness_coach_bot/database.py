@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 import json
 from collections import defaultdict
 import logging
+import os
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -310,8 +311,12 @@ class Database:
     def _save_to_file(self, filename, data):
         """Save data to JSON file"""
         try:
+            # Add prefix for test environment if specified
+            prefix = os.environ.get('DB_PREFIX', '')
+            prefixed_filename = f"{prefix}{filename}"
+            
             # Add project directory prefix
-            filepath = f"fitness_coach_bot/{filename}"
+            filepath = f"fitness_coach_bot/{prefixed_filename}"
             with open(filepath, 'w', encoding='utf-8') as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
             logger.info(f"Successfully saved data to {filepath}")
@@ -319,17 +324,21 @@ class Database:
             logger.error(f"Error saving to {filepath}: {e}")
             # Try saving to root directory as fallback
             try:
-                with open(filename, 'w', encoding='utf-8') as f:
+                with open(prefixed_filename, 'w', encoding='utf-8') as f:
                     json.dump(data, f, ensure_ascii=False, indent=2)
-                logger.info(f"Successfully saved data to root {filename}")
+                logger.info(f"Successfully saved data to root {prefixed_filename}")
             except Exception as e:
-                logger.error(f"Error saving to root {filename}: {e}")
+                logger.error(f"Error saving to root {prefixed_filename}: {e}")
 
     def _load_from_file(self, filename):
         """Load data from JSON file"""
         try:
+            # Add prefix for test environment if specified
+            prefix = os.environ.get('DB_PREFIX', '')
+            prefixed_filename = f"{prefix}{filename}"
+            
             # Try project directory first
-            filepath = f"fitness_coach_bot/{filename}"
+            filepath = f"fitness_coach_bot/{prefixed_filename}"
             try:
                 with open(filepath, 'r', encoding='utf-8') as f:
                     data = json.load(f)
@@ -337,15 +346,15 @@ class Database:
                 return data
             except FileNotFoundError:
                 # Try root directory
-                with open(filename, 'r', encoding='utf-8') as f:
+                with open(prefixed_filename, 'r', encoding='utf-8') as f:
                     data = json.load(f)
-                logger.info(f"Successfully loaded data from root {filename}")
+                logger.info(f"Successfully loaded data from root {prefixed_filename}")
                 return data
         except FileNotFoundError:
-            logger.warning(f"No existing file found for {filename}, creating new")
+            logger.warning(f"No existing file found for {prefixed_filename}, creating new")
             return {}
         except Exception as e:
-            logger.error(f"Error loading {filename}: {e}")
+            logger.error(f"Error loading {prefixed_filename}: {e}")
             return {}
 
     def get_detailed_progress_stats(self, user_id, days=30):

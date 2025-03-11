@@ -2,7 +2,7 @@ import pandas as pd
 from datetime import datetime
 import logging
 import math
-from sheets_service import GoogleSheetsService
+from fitness_coach_bot.sheets_service import GoogleSheetsService
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

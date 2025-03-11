@@ -1,5 +1,5 @@
 from telegram import ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup
-from config import FITNESS_GOALS, FITNESS_LEVELS, EQUIPMENT_OPTIONS
+from fitness_coach_bot.config import FITNESS_GOALS, FITNESS_LEVELS, EQUIPMENT_OPTIONS
 from datetime import datetime
 import calendar
 

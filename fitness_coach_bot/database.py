@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 import json
 from collections import defaultdict
 import logging
+import os
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -310,8 +311,12 @@ class Database:
     def _save_to_file(self, filename, data):
         """Save data to JSON file"""
         try:
+            # Add prefix for test environment if specified
+            prefix = os.environ.get('DB_PREFIX', '')
+            prefixed_filename = f"{prefix}{filename}"
+            
             # Add project directory prefix
-            filepath = f"fitness_coach_bot/{filename}"
+            filepath = f"fitness_coach_bot/{prefixed_filename}"
             with open(filepath, 'w', encoding='utf-8') as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
             logger.info(f"Successfully saved data to {filepath}")

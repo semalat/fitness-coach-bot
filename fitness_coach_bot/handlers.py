@@ -5,10 +5,10 @@ from telegram.ext import (
     MessageHandler, filters, TypeHandler
 )
 import logging
-import messages
+from fitness_coach_bot import messages
 from datetime import datetime, timedelta
-from config import AGE, HEIGHT, WEIGHT, SEX, GOALS, FITNESS_LEVEL, EQUIPMENT, SUBSCRIPTION_MESSAGE
-from keyboards import (
+from fitness_coach_bot.config import AGE, HEIGHT, WEIGHT, SEX, GOALS, FITNESS_LEVEL, EQUIPMENT, SUBSCRIPTION_MESSAGE
+from fitness_coach_bot.keyboards import (
     get_sex_keyboard, get_goals_keyboard, get_fitness_level_keyboard,
     get_equipment_keyboard, get_calendar_keyboard, get_reminder_keyboard
 )

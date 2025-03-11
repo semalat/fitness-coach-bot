@@ -436,6 +436,12 @@ class Database:
             return False
 
         subscription = user.get('subscription', {})
+        
+        # Check whitelist status (users with premium access)
+        if subscription.get('premium', False):
+            logger.info(f"User {user_id} has premium access - bypassing subscription check")
+            return True
+            
         if subscription.get('active', False):
             # Check if subscription is still valid
             expiry_date = datetime.strptime(subscription.get('expiry_date', '2000-01-01'), '%Y-%m-%d')
@@ -445,3 +451,30 @@ class Database:
         profile_created = datetime.strptime(user.get('last_updated', '2000-01-01'), '%Y-%m-%d %H:%M:%S')
         trial_end = profile_created + timedelta(days=10)
         return datetime.now() <= trial_end
+        
+    def add_premium_status(self, user_id):
+        """Add premium access to user subscription"""
+        user_id = str(user_id)
+        if user_id not in self.users:
+            logger.warning(f"No user profile found for user {user_id} when adding premium access")
+            return False
+            
+        if 'subscription' not in self.users[user_id]:
+            self.users[user_id]['subscription'] = {}
+            
+        self.users[user_id]['subscription']['premium'] = True
+        self._save_to_file('users.json', self.users)
+        logger.info(f"User {user_id} granted premium access")
+        return True
+        
+    def remove_premium_status(self, user_id):
+        """Remove premium access from user subscription"""
+        user_id = str(user_id)
+        if user_id not in self.users or 'subscription' not in self.users[user_id]:
+            logger.warning(f"No user profile or subscription found for user {user_id} when removing premium access")
+            return False
+            
+        self.users[user_id]['subscription']['premium'] = False
+        self._save_to_file('users.json', self.users)
+        logger.info(f"Premium access removed for user {user_id}")
+        return True

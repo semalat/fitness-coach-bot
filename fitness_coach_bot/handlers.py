@@ -813,7 +813,7 @@ class BotHandlers:
         user_id = update.effective_user.id
 
         # Commands that don't require subscription check
-        free_commands = ['/start', '/help', '/subscription', '/profile']
+        free_commands = ['/start', '/help', '/subscription', '/profile', '/premium']
         if update.message and update.message.text:
             command = update.message.text.split()[0]
             if command in free_commands:
@@ -837,36 +837,47 @@ class BotHandlers:
             expiry_date = datetime.strptime(subscription_data['expiry_date'], '%Y-%m-%d')
             days_left = (expiry_date - datetime.now()).days
 
+            # Check if user has premium access
+            is_premium = subscription_data.get('premium', False)
+            premium_status = "✨ Премиум доступ активирован" if is_premium else ""
+
             message = (
                 "ℹ️ Информация о вашей подписке:\n\n"
                 f"✅ Статус: Активная\n"
                 f"📅 Действует до: {expiry_date.strftime('%d.%m.%Y')}\n"
-                f"⏳ Осталось дней: {days_left}\n\n"
+                f"⏳ Осталось дней: {days_left}\n"
+                f"{premium_status}\n\n"
                 "Спасибо, что пользуетесь нашим ботом! 🙏"
             )
         else:
-            user_profile = self.db.get_user_profile(user_id)
-            if user_profile:
-                profile_created = datetime.strptime(user_profile.get('last_updated', '2000-01-01'), '%Y-%m-%d %H:%M:%S')
-                trial_end = profile_created + timedelta(days=10)
-                days_left = (trial_end - datetime.now()).days
-
-                if days_left > 0:
-                    trial_message = f"\n\n⏳ Ваш пробный период: осталось {days_left} дней"
-                else:
-                    trial_message = "\n\n⚠️ Ваш пробный период закончился"
+            # Check if user has premium access even without active subscription
+            is_premium = subscription_data.get('premium', False) if subscription_data else False
+            
+            if is_premium:
+                message = (
+                    "ℹ️ Информация о вашей подписке:\n\n"
+                    "✅ Статус: Активная\n"
+                    "✨ Премиум доступ активирован\n\n"
+                    "Спасибо, что пользуетесь нашим ботом! 🙏"
+                )
             else:
-                trial_message = ""
+                user_profile = self.db.get_user_profile(user_id)
+                if user_profile:
+                    profile_created = datetime.strptime(user_profile.get('last_updated', '2000-01-01'), '%Y-%m-%d %H:%M:%S')
+                    trial_end = profile_created + timedelta(days=10)
+                    days_left = (trial_end - datetime.now()).days
 
-            message = f"{SUBSCRIPTION_MESSAGE}{trial_message}\n\n[Оформить подписку](payment_link)"
+                    if days_left > 0:
+                        trial_message = f"\n\n⏳ Ваш пробный период: осталось {days_left} дней"
+                    else:
+                        trial_message = "\n\n⚠️ Ваш пробный период закончился"
+                else:
+                    trial_message = ""
 
-        # Create subscription button (to be implemented later)
-        keyboard = [[InlineKeyboardButton("💳 Оформить подписку", callback_data="subscribe")]]
-        reply_markup = InlineKeyboardMarkup(keyboard)
+                message = f"{SUBSCRIPTION_MESSAGE}{trial_message}\n\n[Оформить подписку](payment_link)"
 
         await update.message.reply_text(
-            message,
-            reply_markup=reply_markup,
+            message, 
             parse_mode='Markdown',
             disable_web_page_preview=True
         )
@@ -1342,7 +1353,8 @@ class BotHandlers:
                 self.handle_muscle_group_selection,
                 pattern='^(muscle_|preview_)'
             ),
-            CallbackQueryHandler(self.handle_progress_callback, pattern='^(progress_weekly|progress_monthly|achievements|workout_history|intensity_analysis|back_to_dashboard)$')
+            CallbackQueryHandler(self.handle_progress_callback, pattern='^(progress_weekly|progress_monthly|achievements|workout_history|intensity_analysis|back_to_dashboard)$'),
+            CommandHandler('premium', self.premium_access)
         ]
 
     def register_handlers(self, application):
@@ -1381,6 +1393,9 @@ class BotHandlers:
 
         # Add middleware check for subscription
         application.add_handler(TypeHandler(Update, self.check_subscription_middleware), group=-1)
+
+        # Add premium access handler
+        application.add_handler(CommandHandler("premium", self.premium_access))
 
     async def cancel_profile(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Cancel profile creation"""
@@ -1439,3 +1454,39 @@ class BotHandlers:
         await query.message.reply_text(
             "Спасибо за отзыв! Это поможет нам подобрать более подходящие тренировки."
         )
+
+    async def premium_access(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Admin command to manage premium access (add or remove users)"""
+        user_id = update.effective_user.id
+        
+        # List of admin user IDs - should be moved to config in a real application
+        admin_ids = ["5311473961", "413662602"]  # Convert to string for consistency
+        
+        if str(user_id) not in admin_ids:
+            # Just silently ignore for non-admin users
+            return
+            
+        # Check if command has arguments
+        if not context.args or len(context.args) < 2:
+            await update.message.reply_text(
+                "⚠️ Формат команды: /premium add|remove USER_ID"
+            )
+            return
+            
+        action = context.args[0].lower()
+        target_user_id = context.args[1]
+        
+        if action == "add":
+            result = self.db.add_premium_status(target_user_id)
+            if result:
+                await update.message.reply_text(f"✅ Премиум статус добавлен для пользователя {target_user_id}.")
+            else:
+                await update.message.reply_text(f"❌ Не удалось добавить премиум статус. Возможно, профиль не существует.")
+        elif action == "remove":
+            result = self.db.remove_premium_status(target_user_id)
+            if result:
+                await update.message.reply_text(f"✅ Премиум статус удален для пользователя {target_user_id}.")
+            else:
+                await update.message.reply_text(f"❌ Не удалось удалить премиум статус.")
+        else:
+            await update.message.reply_text("⚠️ Неверная команда. Используйте 'add' или 'remove'.")

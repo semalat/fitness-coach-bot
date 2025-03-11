@@ -1,8 +1,6 @@
 import schedule
 import time
 from threading import Thread
-from telegram import Bot
-from datetime import datetime
 
 
 class ReminderManager:

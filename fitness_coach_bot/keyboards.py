@@ -110,3 +110,4 @@ def get_calendar_keyboard(year, month, workouts):
     keyboard.append(nav_row)
 
     return InlineKeyboardMarkup(keyboard)
+

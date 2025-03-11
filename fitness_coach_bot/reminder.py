@@ -2,8 +2,8 @@ import schedule
 import time
 from threading import Thread
 from telegram import Bot
-from telegram.error import TelegramError
 from datetime import datetime
+
 
 class ReminderManager:
     def __init__(self, bot, database):

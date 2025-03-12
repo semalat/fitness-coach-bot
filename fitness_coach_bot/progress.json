@@ -239,6 +239,13 @@
       "total_exercises": 13,
       "workout_completed": true,
       "workout_id": "workout_20250306_150854"
+    },
+    {
+      "date": "2025-03-11",
+      "exercises_completed": 1,
+      "total_exercises": 6,
+      "workout_completed": true,
+      "workout_id": "workout_20250311_200657"
     }
   ],
   "1789243667": [

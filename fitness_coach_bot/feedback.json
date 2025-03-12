@@ -109,6 +109,12 @@
       "emotional_state": "fun",
       "physical_state": null,
       "timestamp": "2025-03-06 15:13:01"
+    },
+    "workout_20250311_200657": {
+      "workout_id": "workout_20250311_200657",
+      "emotional_state": null,
+      "physical_state": "ok",
+      "timestamp": "2025-03-11 20:07:01"
     }
   },
   "1789243667": {

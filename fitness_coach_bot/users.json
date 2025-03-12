@@ -8,18 +8,26 @@
     "fitness_level": "Продвинутый",
     "equipment": "Только вес тела",
     "telegram_handle": "chirov_gi",
-    "last_updated": "2025-03-01 07:26:46"
+    "last_updated": "2025-03-01 07:26:46",
+    "subscription": {
+      "premium": true
+    }
   },
   "413662602": {
     "age": 22,
     "height": 181,
-    "weight": 75.0,
+    "weight": 76.0,
     "sex": "Мужской",
     "goals": "Набор мышечной массы",
     "fitness_level": "Продвинутый",
     "equipment": "Доступ в спортзал",
     "telegram_handle": "sslatyshev",
-    "last_updated": "2025-03-04 15:47:01"
+    "last_updated": "2025-03-11 20:06:50",
+    "subscription": {
+      "active": false,
+      "trial_start": "2025-03-11",
+      "trial_end": "2025-03-21"
+    }
   },
   "1789243667": {
     "age": 19,
@@ -57,6 +65,13 @@
       "active": false,
       "trial_start": "2025-03-07",
       "trial_end": "2025-03-17"
+    }
+  },
+  "99999999": {
+    "telegram_handle": "test_user",
+    "last_updated": "2025-03-11 12:00:00",
+    "subscription": {
+      "premium": false
     }
   }
 }

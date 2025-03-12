@@ -216,6 +216,55 @@
       "total_exercises": 12,
       "workout_completed": true,
       "workout_id": "workout_20250306_152011"
+    },
+    {
+      "date": "2025-03-12",
+      "exercises_completed": 3,
+      "total_exercises": 12,
+      "workout_completed": true,
+      "workout_id": "workout_20250312_204242"
+    },
+    {
+      "date": "2025-03-12",
+      "exercises_completed": 3,
+      "total_exercises": 12,
+      "workout_completed": true,
+      "workout_id": "workout_20250312_204255"
+    },
+    {
+      "date": "2025-03-12",
+      "exercises_completed": 3,
+      "total_exercises": 12,
+      "workout_completed": true,
+      "workout_id": "workout_20250312_204425"
+    },
+    {
+      "date": "2025-03-12",
+      "exercises_completed": 5,
+      "total_exercises": 12,
+      "workout_completed": true,
+      "workout_id": "workout_20250312_204446"
+    },
+    {
+      "date": "2025-03-12",
+      "exercises_completed": 1,
+      "total_exercises": 12,
+      "workout_completed": true,
+      "workout_id": "workout_20250312_204455"
+    },
+    {
+      "date": "2025-03-12",
+      "exercises_completed": 3,
+      "total_exercises": 12,
+      "workout_completed": true,
+      "workout_id": "workout_20250312_205548"
+    },
+    {
+      "date": "2025-03-12",
+      "exercises_completed": 1,
+      "total_exercises": 6,
+      "workout_completed": true,
+      "workout_id": "workout_20250312_210734"
     }
   ],
   "413662602": [
@@ -374,6 +423,13 @@
       "total_exercises": 15,
       "workout_completed": true,
       "workout_id": "workout_20250304_115217"
+    },
+    {
+      "date": "2025-03-12",
+      "exercises_completed": 1,
+      "total_exercises": 15,
+      "workout_completed": true,
+      "workout_id": "workout_20250312_203123"
     }
   ],
   "5646237604": [

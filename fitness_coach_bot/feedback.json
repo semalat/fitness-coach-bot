@@ -89,6 +89,42 @@
       "emotional_state": null,
       "physical_state": "ok",
       "timestamp": "2025-03-06 15:20:16"
+    },
+    "workout_20250312_204255": {
+      "workout_id": "workout_20250312_204255",
+      "emotional_state": null,
+      "physical_state": "ok",
+      "timestamp": "2025-03-12 20:42:58"
+    },
+    "workout_20250312_204425": {
+      "workout_id": "workout_20250312_204425",
+      "emotional_state": null,
+      "physical_state": null,
+      "timestamp": "2025-03-12 20:44:27"
+    },
+    "workout_20250312_204446": {
+      "workout_id": "workout_20250312_204446",
+      "emotional_state": null,
+      "physical_state": null,
+      "timestamp": "2025-03-12 20:44:47"
+    },
+    "workout_20250312_204455": {
+      "workout_id": "workout_20250312_204455",
+      "emotional_state": null,
+      "physical_state": "tired",
+      "timestamp": "2025-03-12 20:44:58"
+    },
+    "workout_20250312_205548": {
+      "workout_id": "workout_20250312_205548",
+      "emotional_state": null,
+      "physical_state": null,
+      "timestamp": "2025-03-12 20:55:51"
+    },
+    "workout_20250312_210734": {
+      "workout_id": "workout_20250312_210734",
+      "emotional_state": null,
+      "physical_state": null,
+      "timestamp": "2025-03-12 21:07:36"
     }
   },
   "413662602": {

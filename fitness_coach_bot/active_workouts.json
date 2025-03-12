@@ -1,177 +1,4 @@
 {
-  "1789243667": {
-    "exercises": [
-      {
-        "name": "Звездочка",
-        "target_muscle": "разминка",
-        "difficulty": "начальный",
-        "time": 24,
-        "reps": 0,
-        "circuits": 3,
-        "exercises_rest": 20,
-        "current_circuit": 1,
-        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/32231201.mp4"
-      },
-      {
-        "name": "Альпинист",
-        "target_muscle": "разминка",
-        "difficulty": "начальный",
-        "time": 25,
-        "reps": 0,
-        "circuits": 3,
-        "exercises_rest": 20,
-        "current_circuit": 1,
-        "gif_url": "https://lyfta.app/video/GymvisualMP4/06301201.mp4"
-      },
-      {
-        "name": "Берпи с прыжком",
-        "target_muscle": "разминка",
-        "difficulty": "средний",
-        "time": 30,
-        "reps": 0,
-        "circuits": 3,
-        "exercises_rest": 20,
-        "current_circuit": 1,
-        "gif_url": "https://lyfta.app/video/GymvisualMP4/11601201.mp4"
-      },
-      {
-        "name": "Скейтер",
-        "target_muscle": "ноги",
-        "difficulty": "средний",
-        "time": 0,
-        "reps": 20,
-        "circuits": 3,
-        "exercises_rest": 20,
-        "current_circuit": 1,
-        "gif_url": "https://lyfta.app/video/GymvisualMP4/33611201.mp4"
-      },
-      {
-        "name": "Подъем на икроножных мышцах",
-        "target_muscle": "ноги",
-        "difficulty": "начальный",
-        "time": 0,
-        "reps": 22,
-        "circuits": 3,
-        "exercises_rest": 20,
-        "current_circuit": 1,
-        "gif_url": "https://lyfta.app/video/GymvisualMP4/13731201.mp4"
-      },
-      {
-        "name": "Диагональное вытяжение рук и ног",
-        "target_muscle": "пресс",
-        "difficulty": "средний",
-        "time": 0,
-        "reps": 22,
-        "circuits": 3,
-        "exercises_rest": 20,
-        "current_circuit": 1,
-        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/78021201.mp4"
-      },
-      {
-        "name": "Диагональное вытяжение рук и ног",
-        "target_muscle": "пресс",
-        "difficulty": "средний",
-        "time": 0,
-        "reps": 22,
-        "circuits": 3,
-        "exercises_rest": 20,
-        "current_circuit": 1,
-        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/78021201.mp4"
-      },
-      {
-        "name": "Вынос бедра назад",
-        "target_muscle": "ягодицы",
-        "difficulty": "начальный",
-        "time": 0,
-        "reps": 24,
-        "circuits": 3,
-        "exercises_rest": 20,
-        "current_circuit": 1,
-        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/14741201.mp4"
-      },
-      {
-        "name": "Отжимания с колен",
-        "target_muscle": "руки",
-        "difficulty": "начальный",
-        "time": 0,
-        "reps": 15,
-        "circuits": 3,
-        "exercises_rest": 20,
-        "current_circuit": 1,
-        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/11821201.mp4"
-      },
-      {
-        "name": "Лодочка",
-        "target_muscle": "спина",
-        "difficulty": "начальный",
-        "time": 0,
-        "reps": 12,
-        "circuits": 3,
-        "exercises_rest": 20,
-        "current_circuit": 1,
-        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/08041201.mp4"
-      },
-      {
-        "name": "Поза тюленя в позу щенка",
-        "target_muscle": "спина",
-        "difficulty": "начальный",
-        "time": 0,
-        "reps": 10,
-        "circuits": 3,
-        "exercises_rest": 20,
-        "current_circuit": 1,
-        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/79041201.mp4"
-      },
-      {
-        "name": "Отжимания от пола с упором ног на возвышенности",
-        "target_muscle": "руки",
-        "difficulty": "продвинутый",
-        "time": 0,
-        "reps": 15,
-        "circuits": 3,
-        "exercises_rest": 20,
-        "current_circuit": 1,
-        "gif_url": "https://archive.prosto.academy/uploads/images/gallery/2023-07/JJ1BWht6cbvATAYh-4-1-4.gif"
-      },
-      {
-        "name": "Отжимания от пола с упором ног на возвышенности",
-        "target_muscle": "руки",
-        "difficulty": "продвинутый",
-        "time": 0,
-        "reps": 15,
-        "circuits": 3,
-        "exercises_rest": 20,
-        "current_circuit": 1,
-        "gif_url": "https://archive.prosto.academy/uploads/images/gallery/2023-07/JJ1BWht6cbvATAYh-4-1-4.gif"
-      },
-      {
-        "name": "Поза ребенка",
-        "target_muscle": "заминка",
-        "difficulty": "начальный",
-        "time": 24,
-        "reps": 0,
-        "circuits": 3,
-        "exercises_rest": 20,
-        "current_circuit": 1,
-        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/77621201.mp4"
-      },
-      {
-        "name": "Поза ребенка",
-        "target_muscle": "заминка",
-        "difficulty": "начальный",
-        "time": 24,
-        "reps": 0,
-        "circuits": 3,
-        "exercises_rest": 20,
-        "current_circuit": 1,
-        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/77621201.mp4"
-      }
-    ],
-    "total_exercises": 15,
-    "current_exercise": 0,
-    "workout_type": "bodyweight",
-    "circuits_rest": 60
-  },
   "405653414": {
     "exercises": [
       {
@@ -276,6 +103,294 @@
     ],
     "total_exercises": 9,
     "current_exercise": 0,
+    "workout_type": "gym"
+  },
+  "1789243667": {
+    "exercises": [
+      {
+        "name": "Бег с захлетыванием голени",
+        "target_muscle": "разминка",
+        "difficulty": "начальный",
+        "time": 19,
+        "reps": 1,
+        "circuits": 3,
+        "exercises_rest": 16,
+        "current_circuit": 1,
+        "gif_url": "https://lyfta.app/video/GymvisualMP4/30371201.mp4"
+      },
+      {
+        "name": "Jumping Jacks",
+        "target_muscle": "разминка",
+        "difficulty": "начальный",
+        "time": 60,
+        "reps": 1,
+        "circuits": 3,
+        "exercises_rest": 16,
+        "current_circuit": 1,
+        "gif_url": "https://lyfta.app/video/GymvisualMP4/05161201.mp4"
+      },
+      {
+        "name": "Звездочка",
+        "target_muscle": "разминка",
+        "difficulty": "начальный",
+        "time": 29,
+        "reps": 1,
+        "circuits": 3,
+        "exercises_rest": 16,
+        "current_circuit": 1,
+        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/32231201.mp4"
+      },
+      {
+        "name": "Выпад назад",
+        "target_muscle": "ноги",
+        "difficulty": "начальный",
+        "time": 10,
+        "reps": 24,
+        "circuits": 3,
+        "exercises_rest": 16,
+        "current_circuit": 1,
+        "gif_url": "https://lyfta.app/video/GymvisualMP4/15811201.mp4"
+      },
+      {
+        "name": "Прыжки с приседом",
+        "target_muscle": "ноги",
+        "difficulty": "средний",
+        "time": 10,
+        "reps": 18,
+        "circuits": 3,
+        "exercises_rest": 16,
+        "current_circuit": 1,
+        "gif_url": "https://lyfta.app/video/GymvisualMP4/05131201.mp4"
+      },
+      {
+        "name": "Похлопывание по плечу",
+        "target_muscle": "пресс",
+        "difficulty": "средний",
+        "time": 36,
+        "reps": 1,
+        "circuits": 3,
+        "exercises_rest": 16,
+        "current_circuit": 1,
+        "gif_url": "https://lyfta.app/video/GymvisualMP4/36991201.mp4"
+      },
+      {
+        "name": "Скручивания с поднятыми ногами",
+        "target_muscle": "пресс",
+        "difficulty": "средний",
+        "time": 10,
+        "reps": 18,
+        "circuits": 3,
+        "exercises_rest": 16,
+        "current_circuit": 1,
+        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/04431201.mp4"
+      },
+      {
+        "name": "Ягодичный мостик",
+        "target_muscle": "ягодицы",
+        "difficulty": "начальный",
+        "time": 10,
+        "reps": 18,
+        "circuits": 3,
+        "exercises_rest": 16,
+        "current_circuit": 1,
+        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/24711201.mp4"
+      },
+      {
+        "name": "Отжимания с колен",
+        "target_muscle": "руки",
+        "difficulty": "начальный",
+        "time": 10,
+        "reps": 18,
+        "circuits": 3,
+        "exercises_rest": 16,
+        "current_circuit": 1,
+        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/11821201.mp4"
+      },
+      {
+        "name": "Лодочка",
+        "target_muscle": "спина",
+        "difficulty": "начальный",
+        "time": 10,
+        "reps": 14,
+        "circuits": 3,
+        "exercises_rest": 16,
+        "current_circuit": 1,
+        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/08041201.mp4"
+      },
+      {
+        "name": "Поза тюленя в позу щенка",
+        "target_muscle": "спина",
+        "difficulty": "начальный",
+        "time": 10,
+        "reps": 12,
+        "circuits": 3,
+        "exercises_rest": 16,
+        "current_circuit": 1,
+        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/79041201.mp4"
+      },
+      {
+        "name": "Опускания на трицепс",
+        "target_muscle": "руки",
+        "difficulty": "начальный",
+        "time": 10,
+        "reps": 14,
+        "circuits": 3,
+        "exercises_rest": 16,
+        "current_circuit": 1,
+        "gif_url": "https://my.lyfta.app/exercises"
+      },
+      {
+        "name": "Отжимания",
+        "target_muscle": "руки",
+        "difficulty": "средний",
+        "time": 10,
+        "reps": 14,
+        "circuits": 3,
+        "exercises_rest": 16,
+        "current_circuit": 1,
+        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/06621201.mp4"
+      },
+      {
+        "name": "Вертикальная растяжка",
+        "target_muscle": "заминка",
+        "difficulty": "начальный",
+        "time": 18,
+        "reps": 1,
+        "circuits": 3,
+        "exercises_rest": 16,
+        "current_circuit": 1,
+        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/18161201.mp4"
+      },
+      {
+        "name": "Прыжок с поворотом",
+        "target_muscle": "заминка",
+        "difficulty": "начальный",
+        "time": 30,
+        "reps": 1,
+        "circuits": 3,
+        "exercises_rest": 16,
+        "current_circuit": 1,
+        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/51241201.mp4"
+      }
+    ],
+    "total_exercises": 15,
+    "current_exercise": 0,
+    "workout_type": "bodyweight",
+    "circuits_rest": 60,
+    "current_circuit": 1
+  },
+  "5311473961": {
+    "exercises": [
+      {
+        "name": "Элипсоид в легком темпе, мин",
+        "target_muscle": "разминка",
+        "difficulty": "начальный",
+        "time": 450,
+        "sets": 1,
+        "sets_rest": 30,
+        "current_set": 1,
+        "is_time_based": true,
+        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/21921201.mp4"
+      },
+      {
+        "name": "Кроссовер",
+        "target_muscle": "грудь",
+        "difficulty": "средний",
+        "reps": 15,
+        "weight": 14,
+        "sets": 5,
+        "sets_rest": 40,
+        "current_set": 1,
+        "is_time_based": false,
+        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/01881201.mp4"
+      },
+      {
+        "name": "Тяга среднего блока",
+        "target_muscle": "спина",
+        "difficulty": "средний",
+        "reps": 15,
+        "weight": 21,
+        "sets": 5,
+        "sets_rest": 40,
+        "current_set": 1,
+        "is_time_based": false,
+        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/02391201.mp4"
+      },
+      {
+        "name": "Поднятие штанги прямым хватом до груди",
+        "target_muscle": "плечи",
+        "difficulty": "средний",
+        "reps": 15,
+        "weight": 10,
+        "sets": 5,
+        "sets_rest": 40,
+        "current_set": 1,
+        "is_time_based": false,
+        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/01201201.mp4"
+      },
+      {
+        "name": "Экстензия на квадрицепсы",
+        "target_muscle": "квадрицепс",
+        "difficulty": "средний",
+        "reps": 22,
+        "weight": 7,
+        "sets": 5,
+        "sets_rest": 40,
+        "current_set": 1,
+        "is_time_based": false,
+        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/05851201.mp4"
+      },
+      {
+        "name": "Экстензия на задние лежа",
+        "target_muscle": "задняя поверхность ног",
+        "difficulty": "средний",
+        "reps": 22,
+        "weight": 21,
+        "sets": 5,
+        "sets_rest": 40,
+        "current_set": 1,
+        "is_time_based": false,
+        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/05861201.mp4"
+      },
+      {
+        "name": "Тяга на бицепс одной рукой на блоке снизу",
+        "target_muscle": "бицепс",
+        "difficulty": "средний",
+        "reps": 15,
+        "weight": 7,
+        "sets": 5,
+        "sets_rest": 40,
+        "current_set": 1,
+        "is_time_based": false,
+        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/26561201.mp4"
+      },
+      {
+        "name": "Тяга гантели вверх из-за головы",
+        "target_muscle": "трицепс",
+        "difficulty": "средний",
+        "reps": 18,
+        "weight": 7,
+        "sets": 5,
+        "sets_rest": 40,
+        "current_set": 1,
+        "is_time_based": false,
+        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/04301201.mp4"
+      },
+      {
+        "name": "Планка с помощью ролика для пресса (с колен)",
+        "target_muscle": "пресс",
+        "difficulty": "продвинутый",
+        "reps": 12,
+        "weight": 0,
+        "sets": 5,
+        "sets_rest": 40,
+        "current_set": 1,
+        "is_time_based": false,
+        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/07961201.mp4"
+      }
+    ],
+    "total_exercises": 9,
+    "current_exercise": 1,
     "workout_type": "gym"
   }
 }

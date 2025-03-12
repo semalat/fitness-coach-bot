@@ -5,12 +5,14 @@
     "weight": 65.0,
     "sex": "Мужской",
     "goals": "Похудение",
-    "fitness_level": "Продвинутый",
-    "equipment": "Только вес тела",
+    "fitness_level": "Средний",
+    "equipment": "Доступ в спортзал",
     "telegram_handle": "chirov_gi",
-    "last_updated": "2025-03-01 07:26:46",
+    "last_updated": "2025-03-12 21:00:05",
     "subscription": {
-      "premium": true
+      "active": false,
+      "trial_start": "2025-03-12",
+      "trial_end": "2025-03-22"
     }
   },
   "413662602": {

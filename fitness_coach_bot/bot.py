@@ -41,7 +41,11 @@ def load_environment():
 
 if not load_environment():
     logger.error("Failed to load environment variables")
-    sys.exit(1)
+    # Don't exit here, this prevents testing
+    # Instead, we'll check this condition in main()
+    TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
+else:
+    TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 
 application = None  # Global application instance
 PID_FILE = '/tmp/telegram_bot.pid'
@@ -207,15 +211,16 @@ def main():
     """Initialize and start the bot"""
     global application
 
+    # Check environment variables were loaded
     if not TOKEN:
         logger.error("Error: Telegram Bot Token not found. Please set the TELEGRAM_BOT_TOKEN environment variable.")
-        return
+        return 1
 
     try:
         # Clean up old instances first
         if not cleanup_old_instances():
             logger.error("Could not clean up old instances. Exiting.")
-            return
+            return 1
 
         # Set up signal handlers for graceful shutdown
         signal.signal(signal.SIGINT, signal_handler)
@@ -277,7 +282,7 @@ def main():
         logger.error(f"Bot instance conflict: {e}")
         cleanup_files()
         logger.info("Exiting due to conflict...")
-        sys.exit(1)
+        return 1  # Return error code instead of sys.exit
 
     except Exception as e:
         logger.error(f"Error starting bot: {e}", exc_info=True)
@@ -288,11 +293,9 @@ def main():
             except Exception as stop_error:
                 logger.error(f"Error stopping application: {stop_error}")
         cleanup_files()
-        raise
+        return 1  # Return error code instead of sys.exit
 
-if __name__ == '__main__':
-    try:
-        main()
-    finally:
-        # Ensure cleanup happens even if main crashes
-        cleanup_files()
+    return 0  # Return success code
+
+if __name__ == "__main__":
+    sys.exit(main())  # Only call sys.exit when running as a script

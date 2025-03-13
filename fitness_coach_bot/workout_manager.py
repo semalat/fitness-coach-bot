@@ -2,7 +2,10 @@ import pandas as pd
 from datetime import datetime
 import logging
 import math
+import os
+import json
 from fitness_coach_bot.sheets_service import GoogleSheetsService
+import copy
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -10,11 +13,36 @@ logger = logging.getLogger(__name__)
 
 class WorkoutManager:
     def __init__(self, database=None):
-        self.sheets_service = GoogleSheetsService()
-        self.spreadsheet_id = "1iWPhDOwO54ocsc4XdbgJ6ddWe7LBxWG-9oYN0fGWWws"
-        self.range_name = "'ИТОГ'!A1:O"  
-        self._load_exercises()
+        # Keep Google Sheets service for exercise data
+        self.sheets_service = None
+        try:
+            # Check if all required env vars are present and not empty
+            required_env_vars = [
+                'GOOGLE_TYPE', 'GOOGLE_PROJECT_ID', 'GOOGLE_PRIVATE_KEY_ID',
+                'GOOGLE_PRIVATE_KEY', 'GOOGLE_CLIENT_EMAIL', 'GOOGLE_CLIENT_ID',
+                'GOOGLE_CLIENT_X509_CERT_URL'
+            ]
+            
+            missing_vars = [var for var in required_env_vars if not os.getenv(var)]
+            
+            if missing_vars:
+                logger.warning(f"Missing Google API credentials: {', '.join(missing_vars)}")
+                logger.warning("Will use local file or default exercises instead")
+                raise ValueError("Missing required Google credentials")
+            
+            # Initialize sheets service only if all credentials are present
+            self.sheets_service = GoogleSheetsService()
+            self.spreadsheet_id = "1iWPhDOwO54ocsc4XdbgJ6ddWe7LBxWG-9oYN0fGWWws"
+            self.range_name = "'ИТОГ'!A1:O"
+            logger.info("Google Sheets service initialized successfully")
+        except Exception as e:
+            logger.error(f"Error initializing Google Sheets service: {e}")
+            self.sheets_service = None
+            
         self.db = database
+        
+        # Load exercises from Google Sheets or local file as fallback
+        self._load_exercises()
 
         # Define level multipliers
         self.level_multipliers = {
@@ -30,14 +58,14 @@ class WorkoutManager:
                 'reps': 1.0,
                 'circuits_rest': 1.0,
                 'exercises_rest': 1.0,
-                'circuits': 1.5
+                'circuits': 1.0
             },
             'продвинутый': {
                 'time': 1.3,
                 'reps': 1.3,
                 'circuits_rest': 0.75,
                 'exercises_rest': 0.75,
-                'circuits': 1.5
+                'circuits': 1.0
             }
         }
 
@@ -276,9 +304,9 @@ class WorkoutManager:
         )
 
         # Filter exercises for gym equipment
-        gym_workouts = self.workouts_df[
-            (self.workouts_df['equipment'].str.lower() == 'зал') &
-            (self.workouts_df['difficulty'].str.lower().isin([d.lower() for d in allowed_difficulties]))
+        gym_workouts = self.exercises_df[
+            (self.exercises_df['equipment'].str.lower() == 'зал') &
+            (self.exercises_df['difficulty'].str.lower().isin([d.lower() for d in allowed_difficulties]))
         ]
 
         # For warmup, use only gym warmup exercises
@@ -323,7 +351,7 @@ class WorkoutManager:
         return exercise_data
 
     def generate_gym_workout(self, user_profile, user_id=None):
-        """Generate a gym-specific workout with feedback adaptations"""
+        """Generate a gym workout with feedback adaptations"""
         level_map = {
             "Начинающий": "beginner",
             "Средний": "intermediate",
@@ -366,12 +394,21 @@ class WorkoutManager:
             return self._get_default_workout()
 
         logger.info(f"Generated gym workout with {len(exercises)} exercises")
-        return {
-            'exercises': exercises,
-            'total_exercises': len(exercises),
-            'current_exercise': 0,
-            'workout_type': 'gym'
-        }
+        
+        # Process workout for API response
+        if exercises:
+            # Final steps to create the workout object
+            workout = {
+                'exercises': exercises,
+                'total_exercises': len(exercises),
+                'current_exercise': 0,
+                'workout_type': 'gym'
+            }
+            
+            # Ensure correct types for storage
+            return self._prepare_workout_for_storage(workout)
+        else:
+            return self._get_default_workout()
 
     def generate_muscle_group_workout(self, user_profile, muscle_group, user_id=None):
         """Generate a workout focusing on specific muscle groups"""
@@ -432,55 +469,134 @@ class WorkoutManager:
         }
 
     def _load_exercises(self):
-        """Load exercises from Google Sheets"""
+        """Load exercises from Google Sheets with fallback to local file"""
         try:
-            data = self.sheets_service.get_sheet_data(self.spreadsheet_id, self.range_name)
-            if not data:
-                raise ValueError("No data received from Google Sheets")
+            if self.sheets_service:
+                # First try to load from Google Sheets
+                logger.info("Attempting to load exercises from Google Sheets")
+                data = self.sheets_service.get_sheet_data(self.spreadsheet_id, self.range_name)
+                if not data:
+                    raise ValueError("No data received from Google Sheets")
 
-            # Get headers from first row
-            headers = data[0]
-            expected_columns = [
-                'name', 'target_muscle', 'difficulty', 'efficiency',
-                'gif', 'equipment', 'fitness_goals', 'base_time',
-                'base_reps', 'base_circuits', 'base_circuits_rest',
-                'base_exercises_rest', 'weight', 'sets', 'base_sets_rest'
-            ]
+                # Get headers from first row
+                headers = data[0]
+                expected_columns = [
+                    'name', 'target_muscle', 'difficulty', 'efficiency',
+                    'gif', 'equipment', 'fitness_goals', 'base_time',
+                    'base_reps', 'base_circuits', 'base_circuits_rest',
+                    'base_exercises_rest', 'weight', 'sets', 'base_sets_rest'
+                ]
 
-            # Ensure all headers are present
-            for col in expected_columns:
-                if col not in headers:
-                    headers.append(col)
+                # Ensure all headers are present
+                for col in expected_columns:
+                    if col not in headers:
+                        headers.append(col)
 
-            # Pad rows with empty values if needed
-            rows = []
-            for row in data[1:]:
-                padded_row = row + [''] * (len(headers) - len(row))
-                rows.append(padded_row)
+                # Pad rows with empty values if needed
+                rows = []
+                for row in data[1:]:
+                    padded_row = row + [''] * (len(headers) - len(row))
+                    rows.append(padded_row)
 
-            # Create DataFrame
-            self.workouts_df = pd.DataFrame(rows, columns=headers)
+                # Create DataFrame
+                self.exercises_df = pd.DataFrame(rows, columns=headers)
 
-            # Clean up string values
-            for col in ['equipment', 'target_muscle', 'difficulty']:
-                if col in self.workouts_df.columns:
-                    self.workouts_df[col] = self.workouts_df[col].fillna('').astype(str).str.strip().str.lower()
+                # Clean up string values
+                for col in ['equipment', 'target_muscle', 'difficulty']:
+                    if col in self.exercises_df.columns:
+                        self.exercises_df[col] = self.exercises_df[col].fillna('').astype(str).str.strip().str.lower()
 
-            logger.info(f"Loaded {len(self.workouts_df)} exercises from Google Sheets")
-
+                logger.info(f"Loaded {len(self.exercises_df)} exercises from Google Sheets")
+                
+                # Also save to local file for backup
+                try:
+                    exercises_file = os.path.join('fitness_coach_bot', 'data', 'exercises.json')
+                    os.makedirs(os.path.dirname(exercises_file), exist_ok=True)
+                    with open(exercises_file, 'w', encoding='utf-8') as f:
+                        json.dump(self.exercises_df.to_dict('records'), f, ensure_ascii=False)
+                    logger.info(f"Saved exercises to local file as backup: {exercises_file}")
+                except Exception as e:
+                    logger.warning(f"Could not save exercises to local file: {e}")
+                
+                return
+            
+            # If Google Sheets service not available, try local file
+            logger.info("Google Sheets service not available, trying local file")
+            raise Exception("Fallback to local file")
+            
         except Exception as e:
-            logger.error(f"Error loading exercises from Google Sheets: {str(e)}")
-            self.workouts_df = pd.DataFrame([{
-                'name': 'Приседания',
-                'target_muscle': 'ноги',
-                'difficulty': 'начальный',
-                'equipment': 'нет',
-                'base_time': 30,
-                'base_reps': 15,
-                'base_circuits': 2,
-                'base_circuits_rest': 60,
-                'base_exercises_rest': 30
-            }])
+            logger.warning(f"Error loading exercises from Google Sheets: {e}")
+            
+            # Try to load from local JSON file
+            try:
+                exercises_file = os.path.join('fitness_coach_bot', 'data', 'exercises.json')
+                
+                if os.path.exists(exercises_file):
+                    with open(exercises_file, 'r', encoding='utf-8') as f:
+                        logger.info(f"Loading exercises from local file: {exercises_file}")
+                        self.exercises_df = pd.DataFrame(json.load(f))
+                        logger.info(f"Loaded {len(self.exercises_df)} exercises from local file")
+                        return
+                        
+                logger.warning(f"Local exercises file not found at {exercises_file}")
+            except Exception as local_e:
+                logger.error(f"Error loading exercises from local file: {local_e}")
+            
+            # If all else fails, use default exercises
+            logger.warning("Using default exercise data as fallback")
+            self.exercises_df = self._get_default_exercises()
+            logger.info(f"Created {len(self.exercises_df)} default exercises")
+
+    def _get_default_exercises(self):
+        # Create a default set of exercises if we can't load from Google Sheets or local file
+        default_exercises = [
+            {
+                "name": "Приседания", 
+                "target_muscle": "ноги",
+                "difficulty": "начинающий",
+                "equipment": "нет",
+                "type": "compound",
+                "base_reps": 10,
+                "base_time": 0
+            },
+            {
+                "name": "Отжимания", 
+                "target_muscle": "грудь",
+                "difficulty": "начинающий",
+                "equipment": "нет",
+                "type": "compound",
+                "base_reps": 10,
+                "base_time": 0
+            },
+            {
+                "name": "Планка", 
+                "target_muscle": "пресс",
+                "difficulty": "начинающий",
+                "equipment": "нет",
+                "type": "isolation",
+                "base_reps": 0,
+                "base_time": 30
+            },
+            {
+                "name": "Скручивания", 
+                "target_muscle": "пресс",
+                "difficulty": "начинающий",
+                "equipment": "нет",
+                "type": "isolation",
+                "base_reps": 15,
+                "base_time": 0
+            },
+            {
+                "name": "Выпады", 
+                "target_muscle": "ноги",
+                "difficulty": "средний",
+                "equipment": "нет",
+                "type": "compound",
+                "base_reps": 12,
+                "base_time": 0
+            }
+        ]
+        return pd.DataFrame(default_exercises)
 
     def _safe_float_convert(self, value, default=0):
         """Safely convert value to float"""
@@ -556,7 +672,7 @@ class WorkoutManager:
         structure = self.bodyweight_structures.get(goal, self.bodyweight_structures['общая физическая подготовка'])
 
         # Filter exercises for bodyweight only
-        bodyweight_workouts = self.workouts_df[self.workouts_df['equipment'].str.lower() == 'нет']
+        bodyweight_workouts = self.exercises_df[self.exercises_df['equipment'].str.lower() == 'нет']
 
         if len(bodyweight_workouts) == 0:
             logger.warning("No bodyweight exercises found")
@@ -619,13 +735,20 @@ class WorkoutManager:
                 circuits_rest = round(circuits_rest * self.physical_state_multipliers['tired']['rest'])
 
         logger.info(f"Generated bodyweight workout with {len(exercises)} exercises")
-        return {
+        
+        # Create final workout object
+        workout = {
             'exercises': exercises,
+            'workout_name': f"{goal.title()} тренировка",
             'total_exercises': len(exercises),
             'current_exercise': 0,
-            'workout_type': 'bodyweight',
-            'circuits_rest': circuits_rest
+            'current_circuit': 1,
+            'circuits_rest': circuits_rest,
+            'workout_type': 'bodyweight'
         }
+        
+        # Ensure correct types for storage
+        return self._prepare_workout_for_storage(workout)
 
     def _add_gif_url(self, source_exercise, target_exercise):
         """Add GIF URL to exercise data if available"""
@@ -685,3 +808,32 @@ class WorkoutManager:
                 overview += f"  ⏰ Отдых: {ex['exercises_rest']} сек\n\n"
 
         return overview
+
+    def _prepare_workout_for_storage(self, workout):
+        """Convert workout values for storage (e.g., convert to Decimal for DynamoDB)"""
+        # Make a deep copy to avoid modifying the original
+        storage_workout = copy.deepcopy(workout)
+        
+        # Ensure numeric values are properly formatted as integers
+        if 'circuits_rest' in storage_workout:
+            storage_workout['circuits_rest'] = int(storage_workout['circuits_rest'])
+        
+        if 'total_exercises' in storage_workout:
+            storage_workout['total_exercises'] = int(storage_workout['total_exercises'])
+        
+        # Process each exercise
+        for exercise in storage_workout.get('exercises', []):
+            if 'time' in exercise:
+                exercise['time'] = int(exercise['time'])
+            if 'reps' in exercise:
+                exercise['reps'] = int(exercise['reps'])
+            if 'sets' in exercise:
+                exercise['sets'] = int(exercise['sets'])
+            if 'circuits' in exercise:
+                exercise['circuits'] = int(exercise['circuits'])
+            if 'exercises_rest' in exercise:
+                exercise['exercises_rest'] = int(exercise['exercises_rest'])
+            if 'current_set' in exercise:
+                exercise['current_set'] = int(exercise['current_set'])
+        
+        return storage_workout

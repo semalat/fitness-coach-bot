@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 import sys
+import types
 from dotenv import load_dotenv
 from pathlib import Path
 
@@ -62,10 +63,11 @@ def main():
     # Set a DB prefix for test data
     os.environ['DB_PREFIX'] = 'test_'
     
-    # Mock the Google Sheets service
-    import sys
-    import types
+    # Disable DynamoDB for local testing
+    os.environ['USE_DYNAMO_DB'] = 'False'
+    print("DynamoDB disabled for local testing")
     
+    # Mock the Google Sheets service
     # Create a mock module for sheets_service
     mock_sheets = types.ModuleType('fitness_coach_bot.sheets_service')
     mock_sheets.GoogleSheetsService = MockGoogleSheetsService

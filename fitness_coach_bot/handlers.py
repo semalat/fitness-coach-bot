@@ -150,14 +150,16 @@ class BotHandlers:
                 await update.message.reply_text(message)
             return
 
-        exercise = workout['exercises'][workout['current_exercise']]
-        current = workout['current_exercise'] + 1
-        total = workout['total_exercises']
+        # Convert Decimal to int for list indexing
+        current_exercise_idx = int(workout['current_exercise'])
+        exercise = workout['exercises'][current_exercise_idx]
+        current = current_exercise_idx + 1
+        total = int(workout['total_exercises'])
 
         # Build the message based on workout type
         if workout['workout_type'] == 'bodyweight':
-            current_circuit = workout.get('current_circuit', 1)  # Track circuit globally
-            total_circuits = exercise.get('circuits', 3)
+            current_circuit = int(workout.get('current_circuit', 1))  # Convert to int
+            total_circuits = int(exercise.get('circuits', 3))  # Convert to int
 
             message = f"💪 Круг {current_circuit}/{total_circuits}\n"
             message += f"Упражнение {current}/{total}\n\n"
@@ -165,19 +167,24 @@ class BotHandlers:
             message += f"🎯 Целевые мышцы: {exercise['target_muscle']}\n"
             message += f"⭐ Сложность: {exercise.get('difficulty', 'средний')}\n\n"
 
-            if exercise.get('time', 0) > 0:
-                message += f"⏱ Время: {exercise['time']} сек\n"
+            # Convert exercise time to int for both display and comparison
+            exercise_time = int(exercise.get('time', 0))
+            exercise_reps = int(exercise.get('reps', 0))
+            
+            # Check for timed exercise
+            if exercise_time > 0:
+                message += f"⏱ Время: {exercise_time} сек\n"
             else:
-                message += f"🔄 Повторения: {exercise['reps']}\n"
+                message += f"🔄 Повторения: {exercise_reps}\n"
 
             # Format rest times using workout-level circuits rest
-            circuits_rest = workout['circuits_rest']  # Use workout-level circuits rest
+            circuits_rest = int(workout['circuits_rest'])  # Convert to int
             if circuits_rest >= 60:
                 circuits_rest_str = f"{circuits_rest // 60} мин {circuits_rest % 60} сек"
             else:
                 circuits_rest_str = f"{circuits_rest} сек"
 
-            exercises_rest = exercise['exercises_rest']
+            exercises_rest = int(exercise['exercises_rest'])  # Convert to int
             exercises_rest_str = f"{exercises_rest} сек"
 
             message += f"\n⏰ Отдых между кругами: {circuits_rest_str}"
@@ -185,7 +192,7 @@ class BotHandlers:
 
             # Add instructions
             message += "\n\n📋 Как выполнять:"
-            if exercise.get('time', 0) > 0:
+            if exercise_time > 0:
                 message += "\n1️⃣ Нажмите кнопку '⏱ Старт упражнения' чтобы начать таймер"
                 message += "\n2️⃣ Выполняйте упражнение пока идет таймер"
                 message += "\n3️⃣ После сигнала таймера нажмите '✅ Упражнение выполнено'"
@@ -199,11 +206,11 @@ class BotHandlers:
             keyboard = []
 
             # Add exercise timer button if it's a timed exercise
-            if exercise.get('time', 0) > 0:
+            if exercise_time > 0:
                 keyboard.append([
                     InlineKeyboardButton(
                         "⏱ Старт упражнения",
-                        callback_data=f"exercise_timer_{exercise['time']}"
+                        callback_data=f"exercise_timer_{exercise_time}"
                     )
                 ])
 
@@ -211,7 +218,7 @@ class BotHandlers:
             keyboard.append([InlineKeyboardButton("✅ Упражнение выполнено", callback_data="exercise_done")])
 
             # Add appropriate rest timer
-            if workout['current_exercise'] == workout['total_exercises'] - 1:
+            if current_exercise_idx == total - 1:
                 # Show circuit rest only after last exercise
                 keyboard.append([
                     InlineKeyboardButton(
@@ -229,20 +236,21 @@ class BotHandlers:
                 ])
 
         else:
-            current_set = exercise.get('current_set', 1)
-            total_sets = int(exercise.get('sets', 3))
+            current_set = int(exercise.get('current_set', 1))  # Convert to int
+            total_sets = int(exercise.get('sets', 3))  # Convert to int
 
             message = f"💪 Упражнение {current}/{total}\n\n"
             message += f"📍 {exercise['name']}\n"
             message += f"🎯 Целевые мышцы: {exercise['target_muscle']}\n"
             message += f"⭐ Сложность: {exercise.get('difficulty', 'средний')}\n\n"
             message += f"Сет {current_set}/{total_sets}\n"
-            message += f"🔄 Повторения: {exercise['reps']}\n"
+            message += f"🔄 Повторения: {int(exercise['reps'])}\n"  # Convert to int
 
             if exercise.get('weight', 0) > 0:
-                message += f"🏋️ Вес: {exercise['weight']} кг\n"
+                message += f"🏋️ Вес: {int(exercise['weight'])} кг\n"  # Convert to int
 
-            message += f"\n⏰ Отдых между сетами: {exercise['sets_rest']} сек"
+            sets_rest = int(exercise['sets_rest'])  # Convert to int
+            message += f"\n⏰ Отдых между сетами: {sets_rest} сек"
 
             # Add instructions
             message += "\n\n📋 Как выполнять:"
@@ -257,17 +265,16 @@ class BotHandlers:
             keyboard.append([InlineKeyboardButton("✅ Сет выполнен", callback_data="set_done")])
             keyboard.append([
                 InlineKeyboardButton(
-                    f"⏰ Отдых {exercise['sets_rest']} сек",
-                    callback_data=f"rest_{exercise['sets_rest']}"
+                    f"⏰ Отдых {sets_rest} сек",
+                    callback_data=f"rest_{sets_rest}"
                 )
             ])
 
-
         # Add navigation buttons
         nav_buttons = []
-        if workout['current_exercise'] > 0:
+        if current_exercise_idx > 0:
             nav_buttons.append(InlineKeyboardButton("⬅️ Предыдущее", callback_data="prev_exercise"))
-        if workout['current_exercise'] < workout['total_exercises'] - 1:
+        if current_exercise_idx < total - 1:
             nav_buttons.append(InlineKeyboardButton("➡️ Следующее", callback_data="next_exercise"))
         if nav_buttons:
             keyboard.append(nav_buttons)
@@ -329,79 +336,166 @@ class BotHandlers:
                 await update.message.reply_text(error_message)
 
     async def _finish_workout(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Complete the workout and save progress"""
+        """Complete workout and save user's progress"""
         user_id = update.effective_user.id
         workout = self.db.get_active_workout(user_id)
 
-        if workout:
-            # Save workout completion in database
-            completion_data = {
-                'date': datetime.now().strftime('%Y-%m-%d'),
-                'exercises_completed': workout['current_exercise'] + 1,
-                'total_exercises': workout['total_exercises'],
-                'workout_completed': True,
-                'workout_id': f"workout_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-            }
+        if not workout:
+            # Use effective_chat which works in both message and callback contexts
+            await update.effective_chat.send_message("У вас нет активной тренировки.")
+            return
 
+        try:
+            current_exercise = int(workout.get('current_exercise', 0))
+            total_exercises = int(workout.get('total_exercises', 0))
+        except (ValueError, TypeError) as e:
+            logger.warning(f"Error converting exercise numbers: {e}")
+            current_exercise = 0
+            total_exercises = 0
+
+        # Create completion data
+        completion_data = {
+            'workout_id': workout.get('workout_id', f"workout_{datetime.now().strftime('%Y%m%d_%H%M%S')}"),
+            'workout_type': workout.get('workout_type', 'unknown'),
+            'exercises_completed': current_exercise,
+            'total_exercises': total_exercises,
+            'workout_completed': True,
+            'date': datetime.now().strftime('%Y-%m-%d'),
+            'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        }
+
+        # Save the workout_id in context for feedback
+        context.user_data['last_workout_id'] = completion_data['workout_id']
+
+        success = True
+        error_message = None
+        try:
             self.db.save_workout_progress(user_id, completion_data)
-            self.db.finish_active_workout(user_id)
+            logger.info(f"Saved workout progress for user {user_id}: {completion_data}")
+        except Exception as e:
+            success = False
+            error_message = str(e)
+            logger.error(f"Error saving workout progress: {e}")
 
-            # Ask for feedback about the workout
-            keyboard = [
-                [
-                    InlineKeyboardButton("💪 Слишком легко", callback_data="feedback_too_easy"),
-                    InlineKeyboardButton("👍 В самый раз", callback_data="feedback_ok"),
-                    InlineKeyboardButton("😓 Устал(а)", callback_data="feedback_tired")
-                ]
+        # Remove active workout
+        self.db.finish_active_workout(user_id)
+
+        # Prepare feedback buttons
+        keyboard = [
+            [
+                InlineKeyboardButton("👍 Понравилось", callback_data="feedback_fun"),
+                InlineKeyboardButton("👎 Не понравилось", callback_data="feedback_not_fun")
+            ],
+            [
+                InlineKeyboardButton("😅 Было легко", callback_data="feedback_too_easy"),
+                InlineKeyboardButton("😊 Нормально", callback_data="feedback_ok"),
+                InlineKeyboardButton("😓 Устал(а)", callback_data="feedback_tired")
             ]
-            reply_markup = InlineKeyboardMarkup(keyboard)
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
 
-            # Delete the last exercise message
-            if update.callback_query:
-                try:
-                    await update.callback_query.message.delete()
-                except Exception:
-                    pass
-
-            message = (
-                "🎉 Тренировка завершена!\n\n"
-                f"✅ Выполнено упражнений: {completion_data['exercises_completed']}/{completion_data['total_exercises']}\n\n"
-                "Как вам тренировка? Ваш отзыв поможет нам подобрать лучшую программу в следующий раз!"
+        # Handle both direct message and callback query cases
+        if success:
+            await update.effective_chat.send_message(
+                "🎉 Тренировка завершена! Как вам тренировка?",
+                reply_markup=reply_markup
             )
-
-            # Store workout_id in context for feedback handling
-            context.user_data['last_workout_id'] = completion_data['workout_id']
-
-            if update.callback_query:
-                await update.callback_query.message.reply_text(message, reply_markup=reply_markup)
-            else:
-                await update.message.reply_text(message, reply_markup=reply_markup)
+        else:
+            await update.effective_chat.send_message(
+                f"⚠️ Тренировка завершена, но возникла ошибка при сохранении прогресса: {error_message}\n"
+                "Как вам тренировка?",
+                reply_markup=reply_markup
+            )
 
     async def handle_timer(self, update: Update, context: ContextTypes.DEFAULT_TYPE, timer_type: str, rest_time: int):
         """Handle rest timer between sets/circuits"""
         query = update.callback_query
-        # Delete only the timer message when done
-
+        user_id = update.effective_user.id
+        
+        # Create and store timer job in context
         timer_message = await query.message.reply_text(f"⏱ {timer_type}: {rest_time} сек")
-
-        for remaining in range(rest_time - 1, -1, -1):
-            await asyncio.sleep(1)
-            try:
-                await timer_message.edit_text(f"⏱ {timer_type}: {remaining} сек")
-            except Exception as e:
-                logger.error(f"Error updating timer: {str(e)}")
-                break
-
-        # Delete only the timer message when done
-        try:
-            await timer_message.delete()
-        except Exception:
-            pass
-
-        await query.message.reply_text(
-            "✅ Отдых завершен!\n"
-            "Готовы продолжить? Нажмите кнопку выполнения."
-        )
+        
+        # Store message ID and other info in context for later use
+        if 'timer_messages' not in context.chat_data:
+            context.chat_data['timer_messages'] = []
+        context.chat_data['timer_messages'].append(timer_message.message_id)
+        
+        # Store the chat_id and original message for automatic progress
+        timer_data = {
+            'user_id': user_id,
+            'original_message_id': query.message.message_id,
+            'chat_id': query.message.chat_id,
+            'is_active': True
+        }
+        context.chat_data['current_timer'] = timer_data
+        
+        async def update_timer():
+            for remaining in range(rest_time - 1, -1, -1):
+                # Check if timer was cancelled
+                if not context.chat_data.get('current_timer', {}).get('is_active', False):
+                    logger.info("Timer was cancelled, exiting timer loop")
+                    break
+                    
+                await asyncio.sleep(1)
+                try:
+                    if remaining > 0:
+                        await timer_message.edit_text(f"⏱ {timer_type}: {remaining} сек")
+                    else:
+                        # Just delete the message when timer is done
+                        await timer_message.delete()
+                        if 'timer_messages' in context.chat_data:
+                            try:
+                                context.chat_data['timer_messages'].remove(timer_message.message_id)
+                            except ValueError:
+                                pass
+                        
+                        # Auto-progress only if timer wasn't cancelled
+                        if context.chat_data.get('current_timer', {}).get('is_active', False):
+                            # Clear timer flag
+                            context.chat_data['current_timer']['is_active'] = False
+                            
+                            # Get workout and auto-progress
+                            workout = self.db.get_active_workout(user_id)
+                            if workout:
+                                # Update the workout state
+                                if workout['workout_type'] == 'bodyweight':
+                                    # Simulate exercise_done callback
+                                    new_update = Update.de_json(
+                                        {
+                                            'callback_query': {
+                                                'id': query.id,
+                                                'from': query.from_user.to_dict(),
+                                                'message': query.message.to_dict(),
+                                                'chat_instance': query.chat_instance,
+                                                'data': 'exercise_done'
+                                            }
+                                        },
+                                        context.bot
+                                    )
+                                    # Process as if user clicked "exercise done"
+                                    await self.handle_gym_workout_callback(new_update, context)
+                                else:
+                                    # Simulate set_done callback for gym workouts
+                                    new_update = Update.de_json(
+                                        {
+                                            'callback_query': {
+                                                'id': query.id,
+                                                'from': query.from_user.to_dict(),
+                                                'message': query.message.to_dict(),
+                                                'chat_instance': query.chat_instance,
+                                                'data': 'set_done'
+                                            }
+                                        },
+                                        context.bot
+                                    )
+                                    # Process as if user clicked "set done"
+                                    await self.handle_gym_workout_callback(new_update, context)
+                except Exception as e:
+                    logger.error(f"Error in timer update: {e}")
+                    break
+        
+        # Start timer in background
+        asyncio.create_task(update_timer())
 
     async def handle_gym_workout_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle workout callbacks"""
@@ -423,15 +517,36 @@ class BotHandlers:
             await self.handle_exercise_timer(update, context, time)
             return
 
+        # Mark any running timer as cancelled so it doesn't auto-progress
+        if 'current_timer' in context.chat_data:
+            context.chat_data['current_timer']['is_active'] = False
+
+        # Clean up any active timer messages when proceeding with workout
+        if 'timer_messages' in context.chat_data:
+            for msg_id in context.chat_data['timer_messages'][:]:  # Create a copy of the list to iterate
+                try:
+                    # Try to delete the message
+                    await context.bot.delete_message(chat_id=query.message.chat_id, message_id=msg_id)
+                except Exception:
+                    pass  # Message might be already deleted
+                try:
+                    context.chat_data['timer_messages'].remove(msg_id)
+                except ValueError:
+                    pass
+            
+        # Convert Decimal values to int
+        current_exercise_idx = int(workout['current_exercise'])
+        total_exercises = int(workout['total_exercises'])
+
         if workout['workout_type'] == 'bodyweight':
-            current_circuit = workout.get('current_circuit', 1)
-            exercise = workout['exercises'][workout['current_exercise']]
-            total_circuits = exercise.get('circuits', 3)
+            current_circuit = int(workout.get('current_circuit', 1))
+            exercise = workout['exercises'][current_exercise_idx]
+            total_circuits = int(exercise.get('circuits', 3))
 
             if query.data == "exercise_done":
-                if workout['current_exercise'] < workout['total_exercises'] - 1:
+                if current_exercise_idx < total_exercises - 1:
                     # Move to next exercise in current circuit
-                    workout['current_exercise'] += 1
+                    workout['current_exercise'] = current_exercise_idx + 1
                     self.db.save_active_workout(user_id, workout)
                     # Delete previous exercise message
                     try:
@@ -467,12 +582,12 @@ class BotHandlers:
         else:
             # Gym workout callback handling
             if query.data == "set_done":
-                current_exercise = workout['exercises'][workout['current_exercise']]
-                current_set = current_exercise.get('current_set', 1)
-                total_sets = int(current_exercise.get('sets', 3))
+                exercise = workout['exercises'][current_exercise_idx]
+                current_set = int(exercise.get('current_set', 1))
+                total_sets = int(exercise.get('sets', 3))
 
                 if current_set < total_sets:
-                    current_exercise['current_set'] = current_set + 1
+                    exercise['current_set'] = current_set + 1
                     self.db.save_active_workout(user_id, workout)
                     # Delete previous exercise message
                     try:
@@ -481,9 +596,9 @@ class BotHandlers:
                         pass
                     await self._show_gym_exercise(update, context)
                 else:
-                    if workout['current_exercise'] < workout['total_exercises'] - 1:
-                        workout['current_exercise'] += 1
-                        workout['exercises'][workout['current_exercise']]['current_set'] = 1
+                    if current_exercise_idx < total_exercises - 1:
+                        workout['current_exercise'] = current_exercise_idx + 1
+                        workout['exercises'][current_exercise_idx + 1]['current_set'] = 1
                         self.db.save_active_workout(user_id, workout)
                         # Delete previous exercise message
                         try:
@@ -498,8 +613,8 @@ class BotHandlers:
                 rest_time = int(query.data.split('_')[1])
                 await self.handle_timer(update, context, "Отдых", rest_time)
 
-        if query.data == "prev_exercise" and workout['current_exercise'] > 0:
-            workout['current_exercise'] -= 1
+        if query.data == "prev_exercise" and current_exercise_idx > 0:
+            workout['current_exercise'] = current_exercise_idx - 1
             self.db.save_active_workout(user_id, workout)
             # Delete previous exercise message
             try:
@@ -508,8 +623,8 @@ class BotHandlers:
                 pass
             await self._show_gym_exercise(update, context)
 
-        elif query.data == "next_exercise" and workout['current_exercise'] < workout['total_exercises'] - 1:
-            workout['current_exercise'] += 1
+        elif query.data == "next_exercise" and current_exercise_idx < total_exercises - 1:
+            workout['current_exercise'] = current_exercise_idx + 1
             self.db.save_active_workout(user_id, workout)
             # Delete previous exercise message
             try:
@@ -524,6 +639,7 @@ class BotHandlers:
     async def handle_exercise_timer(self, update: Update, context: ContextTypes.DEFAULT_TYPE, exercise_time: int):
         """Handle exercise duration timer"""
         query = update.callback_query
+        user_id = update.effective_user.id
         logger.info(f"Starting exercise timer for {exercise_time} seconds")
 
         # Send initial timer message
@@ -533,34 +649,72 @@ class BotHandlers:
         )
         logger.info("Timer message sent")
 
-        for remaining in range(exercise_time - 1, -1, -1):
-            await asyncio.sleep(1)
-            try:
-                if remaining > 0:
-                    await timer_message.edit_text(
-                        "🏃‍♂️ Продолжайте упражнение!\n"
-                        f"⏱ Осталось: {remaining} сек"
-                    )
-                    logger.debug(f"Timer updated: {remaining} seconds remaining")
-                else:
-                    await timer_message.edit_text("✅ Время упражнения истекло!")
-                    logger.info("Exercise timer completed")
-            except Exception as e:
-                logger.error(f"Error updating timer at {remaining} seconds: {str(e)}", exc_info=True)
-                break
-
-        # Delete timer message after completion
-        try:
-            await timer_message.delete()
-            logger.info("Timer message deleted")
-        except Exception as e:
-            logger.error(f"Error deleting timer message: {str(e)}", exc_info=True)
-
-        completion_message = await query.message.reply_text(
-            "Упражнение завершено!\n"
-            "Нажмите '✅ Упражнение выполнено' для продолжения."
-        )
-        logger.info("Completion message sent")
+        # Store message ID in context for later deletion
+        if 'timer_messages' not in context.chat_data:
+            context.chat_data['timer_messages'] = []
+        context.chat_data['timer_messages'].append(timer_message.message_id)
+        
+        # Store timer data for auto-progress
+        timer_data = {
+            'user_id': user_id,
+            'original_message_id': query.message.message_id,
+            'chat_id': query.message.chat_id,
+            'is_active': True
+        }
+        context.chat_data['current_timer'] = timer_data
+        
+        async def update_exercise_timer():
+            for remaining in range(exercise_time - 1, -1, -1):
+                # Check if timer was cancelled
+                if not context.chat_data.get('current_timer', {}).get('is_active', False):
+                    logger.info("Exercise timer was cancelled, exiting timer loop")
+                    break
+                
+                await asyncio.sleep(1)
+                try:
+                    if remaining > 0:
+                        await timer_message.edit_text(
+                            "🏃‍♂️ Продолжайте упражнение!\n"
+                            f"⏱ Осталось: {remaining} сек"
+                        )
+                        logger.debug(f"Timer updated: {remaining} seconds remaining")
+                    else:
+                        # Just delete the timer message when done
+                        await timer_message.delete()
+                        if 'timer_messages' in context.chat_data:
+                            try:
+                                context.chat_data['timer_messages'].remove(timer_message.message_id)
+                            except ValueError:
+                                pass
+                        logger.info("Exercise timer completed")
+                        
+                        # Auto-progress only if timer wasn't cancelled
+                        if context.chat_data.get('current_timer', {}).get('is_active', False):
+                            # Clear timer flag
+                            context.chat_data['current_timer']['is_active'] = False
+                            
+                            # Simulate exercise_done callback
+                            new_update = Update.de_json(
+                                {
+                                    'callback_query': {
+                                        'id': query.id,
+                                        'from': query.from_user.to_dict(),
+                                        'message': query.message.to_dict(),
+                                        'chat_instance': query.chat_instance,
+                                        'data': 'exercise_done'
+                                    }
+                                },
+                                context.bot
+                            )
+                            # Process as if user clicked "exercise done"
+                            await self.handle_gym_workout_callback(new_update, context)
+                except Exception as e:
+                    logger.error(f"Error updating timer at {remaining} seconds: {str(e)}", exc_info=True)
+                    break
+        
+        # Start timer in background
+        asyncio.create_task(update_exercise_timer())
+        logger.info("Exercise timer task created")
 
     async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle the /start command"""
@@ -741,38 +895,20 @@ class BotHandlers:
         return ConversationHandler.END
 
     async def workout(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle the /workout command - show workout preview"""
+        """Generate and show workout preview"""
         user_id = update.effective_user.id
         profile = self.db.get_user_profile(user_id)
 
         if not profile:
-            await update.message.reply_text("Сначала создайте профиль командой /profile")
-            return
-
-        # Check equipment type
-        equipment = profile.get('equipment', '').lower()
-
-        if 'зал' in equipment:
-            # Show muscle group selection for gym users
-            keyboard = [
-                [
-                    InlineKeyboardButton("Грудь + Бицепс", callback_data="preview_грудь_бицепс"),
-                    InlineKeyboardButton("Спина + Трицепс", callback_data="preview_спина_трицепс")
-                ],
-                [InlineKeyboardButton("Ноги", callback_data="preview_ноги")],
-                [InlineKeyboardButton("Тренировка на все группы мышц", callback_data="preview_все_группы")]
-            ]
-            reply_markup = InlineKeyboardMarkup(keyboard)
             await update.message.reply_text(
-                "Выберите группу мышц для тренировки:",
-                reply_markup=reply_markup
+                "Пожалуйста, сначала создайте профиль с помощью команды /profile"
             )
             return
 
         # For non-gym users, generate and show bodyweight workout preview
         workout = self.workout_manager.generate_bodyweight_workout(profile)
         self.db.save_preview_workout(user_id, workout)
-        overview = self.workout_manager._generate_bodyweight_overview(workout)
+        overview = self.workout_manager._generate_bodyweight_overview(workout, profile.get('goals', 'Общая физическая подготовка'))
         overview += "\n📱 Используйте /start_workout для начала тренировки"
         await update.message.reply_text(overview)
 
@@ -803,8 +939,11 @@ class BotHandlers:
             )
             return
 
-        # For non-gym users, start bodyweight workout
-        workout = self.workout_manager.generate_bodyweight_workout(profile)
+        # For non-gym users, get the previewed workout or generate new one if not found
+        workout = self.db.get_preview_workout(user_id)
+        if not workout:
+            workout = self.workout_manager.generate_bodyweight_workout(profile)
+            
         self.db.start_active_workout(user_id, workout)
         await self._show_gym_exercise(update, context)
 
@@ -1414,12 +1553,13 @@ class BotHandlers:
         await query.answer()
 
         feedback_type = query.data.split('_')[1]
+        user_id = update.effective_user.id
 
-        # Initialize response variables
-        emotional_response = None
-        physical_response = None
+        # Initialize response variables with default values
+        emotional_response = 'neutral'  # Default emotional state
+        physical_response = 'ok'        # Default physical state
 
-        # Map feedback to responses
+        # Map feedback to responses - only override the relevant state
         if feedback_type == 'fun':
             emotional_response = 'fun'
         elif feedback_type == 'not_fun':
@@ -1434,26 +1574,38 @@ class BotHandlers:
         # Get workout ID from context
         workout_id = context.user_data.get('last_workout_id')
         if not workout_id:
-            await query.message.reply_text("Не удалось сохранить отзыв. Пожалуйста, попробуйте снова.")
+            logger.warning(f"No workout_id found in context for user {user_id} when giving feedback")
+            await update.effective_chat.send_message("Не удалось сохранить отзыв. Пожалуйста, попробуйте снова.")
             return
 
-        # Save feedback
+        # Save feedback with both emotional and physical states always filled
         feedback_data = {
+            'user_id': user_id,
             'workout_id': workout_id,
             'emotional_state': emotional_response,
             'physical_state': physical_response,
-            'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'feedback_id': f"feedback_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         }
 
-        self.db.save_workout_feedback(
-            update.effective_user.id,
+        logger.info(f"Attempting to save feedback for user {user_id}, workout {workout_id}")
+        logger.info(f"Feedback data: {feedback_data}")
+        
+        success = self.db.save_workout_feedback(
+            user_id,
             workout_id,
             feedback_data
         )
 
-        await query.message.reply_text(
-            "Спасибо за отзыв! Это поможет нам подобрать более подходящие тренировки."
-        )
+        if success:
+            await update.effective_chat.send_message(
+                "Спасибо за отзыв! Это поможет нам подобрать более подходящие тренировки."
+            )
+        else:
+            logger.error(f"Failed to save feedback for user {user_id}, workout {workout_id}")
+            await update.effective_chat.send_message(
+                "Не удалось сохранить отзыв. Пожалуйста, попробуйте снова."
+            )
 
     async def premium_access(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Admin command to manage premium access (add or remove users)"""

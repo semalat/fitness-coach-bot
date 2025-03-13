@@ -293,55 +293,55 @@
         "gif_url": "https://www.lyfta.app/video/GymvisualMP4/21921201.mp4"
       },
       {
-        "name": "Кроссовер",
+        "name": "Жим штанги лежа на наклонной скамье на машине смита",
         "target_muscle": "грудь",
         "difficulty": "средний",
         "reps": 15,
-        "weight": 14,
+        "weight": 28,
         "sets": 5,
         "sets_rest": 40,
         "current_set": 1,
         "is_time_based": false,
-        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/01881201.mp4"
+        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/07571201.mp4"
       },
       {
-        "name": "Тяга среднего блока",
+        "name": "Подтягивания с утяжелением",
         "target_muscle": "спина",
         "difficulty": "средний",
-        "reps": 15,
-        "weight": 21,
+        "reps": 10,
+        "weight": 4,
         "sets": 5,
         "sets_rest": 40,
         "current_set": 1,
         "is_time_based": false,
-        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/02391201.mp4"
+        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/08411201.mp4"
       },
       {
-        "name": "Поднятие штанги прямым хватом до груди",
+        "name": "Разводка гантелей стоя в наклоне",
         "target_muscle": "плечи",
         "difficulty": "средний",
-        "reps": 15,
+        "reps": 18,
         "weight": 10,
         "sets": 5,
         "sets_rest": 40,
         "current_set": 1,
         "is_time_based": false,
-        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/01201201.mp4"
+        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/24871201.mp4"
       },
       {
-        "name": "Экстензия на квадрицепсы",
+        "name": "Приседания в тренажере",
         "target_muscle": "квадрицепс",
         "difficulty": "средний",
-        "reps": 22,
-        "weight": 7,
+        "reps": 15,
+        "weight": 28,
         "sets": 5,
         "sets_rest": 40,
         "current_set": 1,
         "is_time_based": false,
-        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/05851201.mp4"
+        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/23841201.mp4"
       },
       {
-        "name": "Экстензия на задние лежа",
+        "name": "Экстензия на задние сидя",
         "target_muscle": "задняя поверхность ног",
         "difficulty": "средний",
         "reps": 22,
@@ -350,22 +350,22 @@
         "sets_rest": 40,
         "current_set": 1,
         "is_time_based": false,
-        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/05861201.mp4"
+        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/05991201.mp4"
       },
       {
-        "name": "Тяга на бицепс одной рукой на блоке снизу",
+        "name": "Тяга на бицепс двумя руками на блоке снизу",
         "target_muscle": "бицепс",
         "difficulty": "средний",
-        "reps": 15,
-        "weight": 7,
+        "reps": 22,
+        "weight": 10,
         "sets": 5,
         "sets_rest": 40,
         "current_set": 1,
         "is_time_based": false,
-        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/26561201.mp4"
+        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/16071201.mp4"
       },
       {
-        "name": "Тяга гантели вверх из-за головы",
+        "name": "Тяга блока одной рукой из-за головы на трицепс ",
         "target_muscle": "трицепс",
         "difficulty": "средний",
         "reps": 18,
@@ -374,23 +374,23 @@
         "sets_rest": 40,
         "current_set": 1,
         "is_time_based": false,
-        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/04301201.mp4"
+        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/01491201.mp4"
       },
       {
-        "name": "Планка с помощью ролика для пресса (с колен)",
+        "name": "Боковые скручивания на блоке",
         "target_muscle": "пресс",
-        "difficulty": "продвинутый",
-        "reps": 12,
-        "weight": 0,
+        "difficulty": "средний",
+        "reps": 18,
+        "weight": 7,
         "sets": 5,
         "sets_rest": 40,
         "current_set": 1,
         "is_time_based": false,
-        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/07961201.mp4"
+        "gif_url": "https://www.lyfta.app/video/GymvisualMP4/02221201.mp4"
       }
     ],
     "total_exercises": 9,
-    "current_exercise": 1,
+    "current_exercise": 0,
     "workout_type": "gym"
   }
 }

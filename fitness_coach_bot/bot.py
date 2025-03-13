@@ -3,10 +3,11 @@ import os
 import signal
 import fcntl
 from pathlib import Path
+from dotenv import load_dotenv
 from telegram.error import Conflict, NetworkError, TimedOut
 import logging
 import time
-from telegram.ext import ApplicationBuilder, Application
+from telegram.ext import ApplicationBuilder, Application, PicklePersistence
 from fitness_coach_bot.config import TOKEN, COMMANDS
 from fitness_coach_bot.database import Database
 from fitness_coach_bot.workout_manager import WorkoutManager
@@ -20,6 +21,28 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
+
+def load_environment():
+    """Load environment variables from .env file"""
+    env_paths = [
+        os.path.join(os.getcwd(), '.env'),
+        os.path.join(os.getcwd(), 'fitness_coach_bot', '.env'),
+        '/home/ec2-user/fitness-coach-bot/fitness_coach_bot/.env'
+    ]
+    
+    for env_path in env_paths:
+        if os.path.exists(env_path):
+            logger.info(f"Loading environment from: {env_path}")
+            load_dotenv(env_path)
+            return True
+    
+    logger.error("No .env file found in any of the expected locations")
+    return False
+
+if not load_environment():
+    logger.error("Failed to load environment variables")
+    sys.exit(1)
+
 application = None  # Global application instance
 PID_FILE = '/tmp/telegram_bot.pid'
 LOCK_FILE = '/tmp/telegram_bot.lock'
@@ -208,6 +231,7 @@ def main():
         logger.info("Workout manager initialized")
 
         # Create application with proper configuration
+        persistence = PicklePersistence(filepath='/tmp/telegram_bot_persistence')
         application = (
             ApplicationBuilder()
             .token(TOKEN)
@@ -216,6 +240,7 @@ def main():
             .read_timeout(30)
             .write_timeout(30)
             .pool_timeout(30)
+            .persistence(persistence)  # Enable persistence which automatically enables job queue
             .build()
         )
         logger.info("Application builder initialized")

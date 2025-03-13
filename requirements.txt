@@ -11,3 +11,4 @@ google-auth-httplib2
 google-auth-oauthlib
 trafilatura
 twilio
+boto3>=1.26.0

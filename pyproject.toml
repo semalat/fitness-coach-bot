@@ -1,4 +1,3 @@
-
 [project]
 name = "fitness-coach-bot"
 version = "0.1.0"
@@ -20,3 +19,6 @@ dependencies = [
     "pandas>=2.0.0",
     "twilio>=9.0.0"
 ]
+
+[tool.poetry.dependencies]
+yookassa = "^2.4.0"

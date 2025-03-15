@@ -620,84 +620,117 @@ class Database:
     def get_user_feedback(self, user_id):
         """Get user's workout feedback history"""
         user_id = str(user_id)
-        if self.use_dynamo:
-            response = self.feedback_table.query(
-                KeyConditionExpression=Key('user_id').eq(user_id)
-            )
-            feedback = response.get('Items', [])
-        else:
-            feedback = self._read_json(self.feedback_file)
-            feedback = feedback.get(user_id, {})
+        try:
+            if self.use_dynamo:
+                response = self.feedback_table.query(
+                    KeyConditionExpression=Key('user_id').eq(user_id)
+                )
+                feedback_items = response.get('Items', [])
+                
+                # Convert the list of items to a dictionary with workout_id as key
+                feedback = {}
+                for item in feedback_items:
+                    if 'workout_id' in item:
+                        feedback[item['workout_id']] = item
+                
+            else:
+                all_feedback = self._read_json(self.feedback_file)
+                feedback = all_feedback.get(user_id, {})
 
-        # Sort feedback by timestamp to get the most recent ones first
-        sorted_feedback = sorted(
-            [
-                (workout_id, data) 
-                for workout_id, data in feedback.items()
-            ],
-            key=lambda x: x[1]['timestamp'],
-            reverse=True
-        )
+            # If feedback is a list (from previous version) or not a dict, convert or use empty dict
+            if isinstance(feedback, list):
+                logger.warning(f"Feedback for user {user_id} is a list, converting to dict")
+                feedback_dict = {}
+                for item in feedback:
+                    if isinstance(item, dict) and 'workout_id' in item:
+                        feedback_dict[item['workout_id']] = item
+                feedback = feedback_dict
+            
+            # If feedback is empty or not a dict, return an empty dict
+            if not isinstance(feedback, dict):
+                logger.warning(f"Invalid feedback format for user {user_id}, using empty dict")
+                return {}
 
-        return dict(sorted_feedback)
-    
+            # Sort feedback by timestamp to get the most recent ones first
+            try:
+                sorted_feedback = sorted(
+                    [
+                        (workout_id, data) 
+                        for workout_id, data in feedback.items()
+                        if isinstance(data, dict) and 'timestamp' in data  # Ensure data is valid
+                    ],
+                    key=lambda x: x[1]['timestamp'],
+                    reverse=True
+                )
+                return dict(sorted_feedback)
+            except Exception as sort_error:
+                logger.error(f"Error sorting feedback: {sort_error}")
+                return feedback  # Return unsorted feedback if sorting fails
+        
+        except Exception as e:
+            logger.error(f"Error getting user feedback: {e}", exc_info=True)
+            return {}  # Return empty dict on error
+
     def get_recent_feedback(self, user_id, limit=5):
         """Get user's recent workout feedback for adaptation"""
-        feedback = self.get_user_feedback(user_id)
-        recent = list(feedback.items())[:limit]
+        try:
+            feedback = self.get_user_feedback(user_id)
+            
+            # Handle empty feedback
+            if not feedback:
+                logger.info(f"No feedback found for user {user_id}, using default values")
+                return {
+                    'emotional_state': 'good',  # Default state if no feedback
+                    'physical_state': 'ok',
+                    'consecutive_negative': 0
+                }
+                
+            recent = list(feedback.items())[:limit]
 
-        logger.info(f"Getting recent feedback for user {user_id}")
-        logger.info(f"Found {len(recent)} recent feedback entries")
+            logger.info(f"Getting recent feedback for user {user_id}")
+            logger.info(f"Found {len(recent)} recent feedback entries")
 
-        if not recent:
-            logger.info(f"No feedback found for user {user_id}, using default values")
+            # Analyze recent feedback
+            emotional_negative = 0
+            physical_stats = {'too_easy': 0, 'ok': 0, 'tired': 0}
+
+            for workout_id, data in recent:
+                logger.info(f"Analyzing feedback for workout {workout_id}: {data}")
+                
+                # Get emotional state with default if missing
+                emotional_state = data.get('emotional_state')
+                if emotional_state == 'not_fun':
+                    emotional_negative += 1
+                
+                # Get physical state with default if missing
+                physical_state = data.get('physical_state', 'ok')
+                if physical_state in physical_stats:
+                    physical_stats[physical_state] += 1
+                    
+            # Determine predominant physical state
+            predominant_physical = 'ok'  # Default
+            max_count = physical_stats['ok']  # Start with 'ok' as baseline
+            
+            for state, count in physical_stats.items():
+                if count > max_count:
+                    max_count = count
+                    predominant_physical = state
+                    
+            # Return analyzed feedback for adaptation
             return {
-                'emotional_state': 'good',  # Default state if no feedback
+                'emotional_state': 'not_fun' if emotional_negative > (len(recent) // 2) else 'good',
+                'physical_state': predominant_physical,
+                'consecutive_negative': emotional_negative
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting recent feedback: {e}", exc_info=True)
+            # Return default values on error
+            return {
+                'emotional_state': 'good',
                 'physical_state': 'ok',
                 'consecutive_negative': 0
             }
-
-        # Analyze recent feedback
-        emotional_negative = 0
-        physical_stats = {'too_easy': 0, 'ok': 0, 'tired': 0}
-
-        for workout_id, data in recent:
-            logger.info(f"Analyzing feedback for workout {workout_id}: {data}")
-            
-            # Get emotional state with default if missing
-            emotional_state = data.get('emotional_state')
-            if emotional_state == 'not_fun':
-                emotional_negative += 1
-                
-            # Get physical state with default if missing
-            physical_state = data.get('physical_state', 'ok')
-            if physical_state in physical_stats:
-                physical_stats[physical_state] += 1
-            else:
-                # If physical state is not recognized, count it as 'ok'
-                logger.warning(f"Unrecognized physical state '{physical_state}' in feedback for workout {workout_id}")
-                physical_stats['ok'] += 1
-
-        # Determine predominant states
-        emotional_state = 'not_fun' if emotional_negative >= len(recent) // 2 else 'good'
-        
-        # Guard against empty physical stats
-        if all(count == 0 for count in physical_stats.values()):
-            logger.warning(f"No valid physical states found in feedback for user {user_id}")
-            physical_state = 'ok'  # Default when no valid states found
-        else:
-            # Find the state with highest count
-            physical_state = max(physical_stats.items(), key=lambda x: x[1])[0]
-
-        result = {
-            'emotional_state': emotional_state,
-            'physical_state': physical_state,
-            'consecutive_negative': emotional_negative
-        }
-
-        logger.info(f"Analyzed feedback for user {user_id}: {result}")
-        logger.info(f"Physical state distribution: {physical_stats}")
-        return result
 
     def get_workouts_by_date(self, user_id, start_date, end_date):
         """Get workouts within date range"""

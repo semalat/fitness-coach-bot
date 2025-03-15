@@ -111,3 +111,44 @@ def get_calendar_keyboard(year, month, workouts):
 
     return InlineKeyboardMarkup(keyboard)
 
+def get_subscription_keyboard():
+    """Keyboard for subscription menu"""
+    keyboard = [
+        [InlineKeyboardButton("Просмотреть тарифы", callback_data="subscription_plans")],
+        [InlineKeyboardButton("Вернуться в главное меню", callback_data="back_to_main")]
+    ]
+    return InlineKeyboardMarkup(keyboard)
+
+def get_subscription_plans_keyboard():
+    """Keyboard for subscription plans"""
+    keyboard = [
+        [InlineKeyboardButton("Месяц - 299 ₽", callback_data="plan_monthly")],
+        [InlineKeyboardButton("Год - 999 ₽", callback_data="plan_yearly")],
+        [InlineKeyboardButton("Назад", callback_data="subscription_cancel")]
+    ]
+    return InlineKeyboardMarkup(keyboard)
+
+def get_payment_keyboard(payment_url, payment_id):
+    """Keyboard for payment options"""
+    keyboard = [
+        [InlineKeyboardButton("Оплатить", url=payment_url)],
+        [InlineKeyboardButton("Проверить статус оплаты", callback_data=f"payment_check_{payment_id}")],
+        [InlineKeyboardButton("Отменить", callback_data=f"payment_cancel_{payment_id}")]
+    ]
+    return InlineKeyboardMarkup(keyboard)
+
+def get_check_payment_keyboard(payment_id):
+    """Keyboard for checking payment status"""
+    keyboard = [
+        [InlineKeyboardButton("Проверить еще раз", callback_data=f"payment_check_{payment_id}")],
+        [InlineKeyboardButton("Вернуться к тарифам", callback_data="subscription_plans")]
+    ]
+    return InlineKeyboardMarkup(keyboard)
+
+def get_back_to_main_keyboard():
+    """Keyboard for going back to main menu"""
+    keyboard = [
+        [InlineKeyboardButton("Вернуться в главное меню", callback_data="back_to_main")]
+    ]
+    return InlineKeyboardMarkup(keyboard)
+

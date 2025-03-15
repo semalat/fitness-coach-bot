@@ -2,7 +2,7 @@ import asyncio
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, Message
 from telegram.ext import (
     ContextTypes, CommandHandler, CallbackQueryHandler, ConversationHandler,
-    MessageHandler, filters, TypeHandler
+    MessageHandler, filters, TypeHandler, PreCheckoutQueryHandler
 )
 import logging
 from fitness_coach_bot import messages
@@ -10,16 +10,41 @@ from datetime import datetime, timedelta
 from fitness_coach_bot.config import AGE, HEIGHT, WEIGHT, SEX, GOALS, FITNESS_LEVEL, EQUIPMENT, SUBSCRIPTION_MESSAGE
 from fitness_coach_bot.keyboards import (
     get_sex_keyboard, get_goals_keyboard, get_fitness_level_keyboard,
-    get_equipment_keyboard, get_calendar_keyboard, get_reminder_keyboard
+    get_equipment_keyboard, get_calendar_keyboard, get_reminder_keyboard,
+    get_subscription_keyboard, get_subscription_plans_keyboard,
+    get_payment_keyboard, get_check_payment_keyboard, get_back_to_main_keyboard
 )
+from fitness_coach_bot.payment_manager import PaymentManager
+import re
+import random
+import traceback
 
 logger = logging.getLogger(__name__)
+
+# Email validation regex
+EMAIL_REGEX = re.compile(r"[^@]+@[^@]+\.[^@]+")
 
 class BotHandlers:
     def __init__(self, database, workout_manager, reminder_manager):
         self.db = database
         self.workout_manager = workout_manager
         self.reminder_manager = reminder_manager
+        
+        # Initialize payment manager
+        self.payment_manager = PaymentManager(database)
+        
+        # States for conversation handlers
+        self.PROFILE = range(1, 10)
+        self.WORKOUT = range(10, 20)
+        self.TIMER = range(20, 30)
+        self.PAYMENT = range(30, 40)  # Add states for payment process
+        
+        # Email collection state
+        self.WAITING_FOR_EMAIL = 31
+        
+        # The database parameter is used as 'database' in PaymentManager,
+        # so we pass the database object directly
+        self.payment_manager = PaymentManager(database)  # Keep using 'database' to match PaymentManager's expectation
 
     async def show_progress(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle the /progress command - show fitness dashboard"""
@@ -244,22 +269,59 @@ class BotHandlers:
             message += f"🎯 Целевые мышцы: {exercise['target_muscle']}\n"
             message += f"⭐ Сложность: {exercise.get('difficulty', 'средний')}\n\n"
             message += f"Сет {current_set}/{total_sets}\n"
-            message += f"🔄 Повторения: {int(exercise['reps'])}\n"  # Convert to int
 
-            if exercise.get('weight', 0) > 0:
-                message += f"🏋️ Вес: {int(exercise['weight'])} кг\n"  # Convert to int
+            # Check if exercise has time or reps data
+            has_time = 'time' in exercise and int(exercise.get('time', 0)) > 0
+            has_reps = 'reps' in exercise and int(exercise.get('reps', 0)) > 0
+            
+            if has_time:
+                # For time-based exercises (like running on treadmill)
+                exercise_time = int(exercise.get('time', 0))
+                time_minutes = exercise_time // 60
+                time_seconds = exercise_time % 60
+                
+                if time_minutes > 0:
+                    message += f"⏱ Время: {time_minutes} мин {time_seconds} сек\n"
+                else:
+                    message += f"⏱ Время: {time_seconds} сек\n"
+            elif has_reps:
+                # For rep-based exercises
+                message += f"🔄 Повторения: {int(exercise['reps'])}\n"  # Convert to int
+            else:
+                # Fallback if neither is present
+                message += f"🔄 Подходов: {total_sets}\n"
+
+            # Fix the type error by converting weight to float first
+            weight = self._safe_float_convert(exercise.get('weight', 0))
+            if weight > 0:
+                message += f"🏋️ Вес: {int(weight)} кг\n"
 
             sets_rest = int(exercise['sets_rest'])  # Convert to int
             message += f"\n⏰ Отдых между сетами: {sets_rest} сек"
 
             # Add instructions
             message += "\n\n📋 Как выполнять:"
-            message += "\n1️⃣ Выполните указанное количество повторений с заданным весом"
-            message += "\n2️⃣ Нажмите '✅ Сет выполнен'"
+            if has_time:
+                message += "\n1️⃣ Нажмите кнопку '⏱ Старт упражнения' чтобы начать таймер"
+                message += "\n2️⃣ Выполняйте упражнение пока идет таймер"
+                message += "\n3️⃣ После сигнала таймера нажмите '✅ Сет выполнен'"
+            else:
+                message += "\n1️⃣ Выполните указанное количество повторений с заданным весом"
+                message += "\n2️⃣ Нажмите '✅ Сет выполнен'"
             message += "\n3️⃣ Отдохните, нажав кнопку таймера"
 
             # Create keyboard
             keyboard = []
+            
+            # Add exercise timer button only if it's a timed exercise
+            if has_time:
+                exercise_time = int(exercise.get('time', 0))
+                keyboard.append([
+                    InlineKeyboardButton(
+                        "⏱ Старт упражнения",
+                        callback_data=f"exercise_timer_{exercise_time}"
+                    )
+                ])
 
             # Add completion button
             keyboard.append([InlineKeyboardButton("✅ Сет выполнен", callback_data="set_done")])
@@ -717,9 +779,45 @@ class BotHandlers:
         logger.info("Exercise timer task created")
 
     async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle the /start command"""
+        """Handle the /start command and deep linking"""
         try:
-            await update.message.reply_text(messages.WELCOME_MESSAGE)
+            user_id = update.effective_user.id
+            message_text = messages.WELCOME_MESSAGE
+            
+            # Проверяем, есть ли параметры глубоких ссылок (deep linking)
+            if context.args and len(context.args) > 0:
+                deep_link_payload = context.args[0]
+                logger.info(f"Получена глубокая ссылка: {deep_link_payload}")
+                
+                # Обработка возврата с платежа
+                if deep_link_payload.startswith('payment_'):
+                    # Проверяем статус платежа через payment_manager
+                    payment_result = self.payment_manager.handle_payment_callback(deep_link_payload)
+                    
+                    if payment_result:
+                        if payment_result.get('success'):
+                            await update.message.reply_text(
+                                f"🎉 {payment_result['message']}\n\n"
+                                f"Теперь у вас есть доступ ко всем функциям бота!",
+                                reply_markup=get_back_to_main_keyboard()
+                            )
+                        else:
+                            # Если платеж не успешен, даем возможность проверить еще раз
+                            payment_id = payment_result.get('payment_id')
+                            if payment_id:
+                                await update.message.reply_text(
+                                    f"⚠️ {payment_result['message']}",
+                                    reply_markup=get_check_payment_keyboard(payment_id)
+                                )
+                            else:
+                                await update.message.reply_text(
+                                    f"⚠️ {payment_result['message']}",
+                                    reply_markup=get_subscription_keyboard()
+                                )
+                        # Не показываем приветственное сообщение после обработки платежа
+                        return
+            
+            await update.message.reply_text(message_text)
             logger.info(f"User {update.effective_user.id} started the bot")
         except Exception as e:
             logger.error(f"Error in start handler: {e}")
@@ -905,6 +1003,24 @@ class BotHandlers:
             )
             return
 
+        equipment = profile.get('equipment', '').lower()
+        if 'зал' in equipment:
+            # Show muscle group selection for gym users
+            keyboard = [
+                [
+                    InlineKeyboardButton("Грудь + Бицепс", callback_data="preview_грудь_бицепс"),
+                    InlineKeyboardButton("Спина + Трицепс", callback_data="preview_спина_трицепс")
+                ],
+                [InlineKeyboardButton("Ноги", callback_data="preview_ноги")],
+                [InlineKeyboardButton("Тренировка на все группы мышц", callback_data="preview_все_группы")]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            await update.message.reply_text(
+                "Выберите тип тренировки для предпросмотра:",
+                reply_markup=reply_markup
+            )
+            return
+
         # For non-gym users, generate and show bodyweight workout preview
         workout = self.workout_manager.generate_bodyweight_workout(profile)
         self.db.save_preview_workout(user_id, workout)
@@ -921,29 +1037,36 @@ class BotHandlers:
             await update.message.reply_text("Сначала создайте профиль командой /profile")
             return
 
-        equipment = profile.get('equipment', '').lower()
-        if 'зал' in equipment:
-            # Show muscle group selection for gym users
-            keyboard = [
-                [
-                    InlineKeyboardButton("Грудь + Бицепс", callback_data="muscle_грудь_бицепс"),
-                    InlineKeyboardButton("Спина + Трицепс", callback_data="muscle_спина_трицепс")
-                ],
-                [InlineKeyboardButton("Ноги", callback_data="muscle_ноги")],
-                [InlineKeyboardButton("Тренировка на все группы мышц", callback_data="muscle_все_группы")]
-            ]
-            reply_markup = InlineKeyboardMarkup(keyboard)
-            await update.message.reply_text(
-                "Выберите группу мышц для тренировки:",
-                reply_markup=reply_markup
-            )
-            return
-
-        # For non-gym users, get the previewed workout or generate new one if not found
+        # Get the previewed workout for any user type
         workout = self.db.get_preview_workout(user_id)
+        
+        # If no preview exists, check equipment and handle accordingly
         if not workout:
-            workout = self.workout_manager.generate_bodyweight_workout(profile)
-            
+            equipment = profile.get('equipment', '').lower()
+            if 'зал' in equipment:
+                # For gym users, they need to preview a workout first
+                keyboard = [
+                    [
+                        InlineKeyboardButton("Грудь + Бицепс", callback_data="preview_грудь_бицепс"),
+                        InlineKeyboardButton("Спина + Трицепс", callback_data="preview_спина_трицепс")
+                    ],
+                    [InlineKeyboardButton("Ноги", callback_data="preview_ноги")],
+                    [InlineKeyboardButton("Тренировка на все группы мышц", callback_data="preview_все_группы")]
+                ]
+                reply_markup = InlineKeyboardMarkup(keyboard)
+                await update.message.reply_text(
+                    "Сначала выберите тип тренировки с помощью команды /workout:",
+                    reply_markup=reply_markup
+                )
+                return
+            else:
+                # For bodyweight users, generate a new workout
+                workout = self.workout_manager.generate_bodyweight_workout(profile)
+        
+        # Ensure workout starts from the first exercise
+        workout['current_exercise'] = 0
+        
+        # For both gym and bodyweight users, start the workout
         self.db.start_active_workout(user_id, workout)
         await self._show_gym_exercise(update, context)
 
@@ -968,58 +1091,343 @@ class BotHandlers:
         return True
 
     async def subscription(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle subscription command"""
+        """Show subscription options"""
         user_id = update.effective_user.id
-        subscription_data = self.db.get_subscription(user_id)
+        
+        # Check if payment system is enabled
+        if not self.payment_manager.is_enabled():
+            await update.message.reply_text(
+                "Извините, платежная система временно недоступна. Пожалуйста, попробуйте позже."
+            )
+            return
 
-        if subscription_data and subscription_data.get('active', False):
-            expiry_date = datetime.strptime(subscription_data['expiry_date'], '%Y-%m-%d')
-            days_left = (expiry_date - datetime.now()).days
-
-            # Check if user has premium access
-            is_premium = subscription_data.get('premium', False)
-            premium_status = "✨ Премиум доступ активирован" if is_premium else ""
-
-            message = (
-                "ℹ️ Информация о вашей подписке:\n\n"
-                f"✅ Статус: Активная\n"
-                f"📅 Действует до: {expiry_date.strftime('%d.%m.%Y')}\n"
-                f"⏳ Осталось дней: {days_left}\n"
-                f"{premium_status}\n\n"
-                "Спасибо, что пользуетесь нашим ботом! 🙏"
+        # Get current subscription status
+        subscription = self.db.get_subscription(user_id)
+        
+        if subscription and subscription.get('active'):
+            expiry_date = subscription.get('expiry_date', 'неизвестно')
+            await update.message.reply_text(
+                f"🎖 У вас активная подписка до {expiry_date}.\n\n"
+                "Вы можете продлить подписку или отменить текущую.",
+                reply_markup=get_subscription_keyboard()
             )
         else:
-            # Check if user has premium access even without active subscription
-            is_premium = subscription_data.get('premium', False) if subscription_data else False
+            await update.message.reply_text(
+                "🔒 Подписка открывает доступ ко всем функциям бота:\n\n"
+                "✅ Расширенные тренировки\n"
+                "✅ Персональные программы\n"
+                "✅ Статистика и аналитика\n\n"
+                "Выберите действие:",
+                reply_markup=get_subscription_keyboard()
+            )
+
+    async def handle_subscription_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle callback queries from subscription buttons"""
+        query = update.callback_query
+        await query.answer()
+        
+        # Get the callback data
+        callback_data = query.data
+        
+        # Process different subscription actions
+        if callback_data == "subscription_plans":
+            # Show subscription plans
+            plans_keyboard = get_subscription_plans_keyboard()
+            await query.message.edit_text(
+                "Выберите план подписки:",
+                reply_markup=plans_keyboard
+            )
             
-            if is_premium:
-                message = (
-                    "ℹ️ Информация о вашей подписке:\n\n"
-                    "✅ Статус: Активная\n"
-                    "✨ Премиум доступ активирован\n\n"
-                    "Спасибо, что пользуетесь нашим ботом! 🙏"
+        elif callback_data == "subscription_cancel":
+            # Cancel current subscription
+            await query.message.edit_text(
+                "Оформление подписки отменено. Вы можете вернуться к этому позже.",
+                reply_markup=get_back_to_main_keyboard()
+            )
+            
+        elif callback_data.startswith("plan_"):
+            # Handle plan selection
+            plan_type = callback_data.split("_")[1]  # monthly or yearly
+            
+            # Check if payment system is enabled
+            if not self.payment_manager.is_enabled():
+                await query.message.edit_text(
+                    "Извините, платежная система временно недоступна. Пожалуйста, попробуйте позже.",
+                    reply_markup=get_back_to_main_keyboard()
                 )
-            else:
-                user_profile = self.db.get_user_profile(user_id)
-                if user_profile:
-                    profile_created = datetime.strptime(user_profile.get('last_updated', '2000-01-01'), '%Y-%m-%d %H:%M:%S')
-                    trial_end = profile_created + timedelta(days=10)
-                    days_left = (trial_end - datetime.now()).days
-
-                    if days_left > 0:
-                        trial_message = f"\n\n⏳ Ваш пробный период: осталось {days_left} дней"
-                    else:
-                        trial_message = "\n\n⚠️ Ваш пробный период закончился"
+                return
+            
+            # Save the selected plan in user data
+            context.user_data['selected_plan'] = plan_type
+            
+            # Check if Telegram native payments are available
+            if self.payment_manager.is_telegram_payment_enabled():
+                # Use Telegram native payments
+                user_id = query.from_user.id
+                
+                plans = self.payment_manager.get_subscription_plans()
+                selected_plan = plans.get(plan_type, {"name": "Подписка", "price": 0})
+                
+                await query.message.edit_text(
+                    f"💳 *Оплата {selected_plan['name']}*\n\n"
+                    f"Стоимость: {selected_plan['price']} ₽\n\n"
+                    "Сейчас вам будет выставлен счет для оплаты через Telegram. "
+                    "Вы сможете оплатить подписку, не покидая приложение.",
+                    parse_mode='Markdown'
+                )
+                
+                # Create invoice parameters
+                invoice_params = self.payment_manager.create_telegram_invoice(user_id, plan_type)
+                
+                if invoice_params:
+                    # Send invoice to user
+                    try:
+                        await context.bot.send_invoice(
+                            chat_id=user_id,
+                            title=invoice_params["title"],
+                            description=invoice_params["description"],
+                            payload=invoice_params["payload"],
+                            provider_token=invoice_params["provider_token"],
+                            currency=invoice_params["currency"],
+                            prices=invoice_params["prices"],
+                            need_email=invoice_params.get("need_email", True),
+                            send_email_to_provider=invoice_params.get("send_email_to_provider", True),
+                            provider_data=invoice_params.get("provider_data")
+                        )
+                        logger.info(f"Sent Telegram invoice to user {user_id} for plan {plan_type}")
+                    except Exception as e:
+                        logger.error(f"Error sending Telegram invoice: {str(e)}")
+                        # Fall back to regular payment method
+                        await query.message.edit_text(
+                            "Не удалось создать счет через Telegram. Пожалуйста, введите email для альтернативного способа оплаты:",
+                        )
+                        # Set conversation state to waiting for email
+                        context.user_data['payment_state'] = self.WAITING_FOR_EMAIL
                 else:
-                    trial_message = ""
+                    # Fall back to regular payment method if invoice creation failed
+                    await query.message.edit_text(
+                        "Для оформления платежа нам необходим ваш email адрес. "
+                        "Он будет использован только для формирования чека.\n\n"
+                        "Пожалуйста, введите ваш email:"
+                    )
+                    # Set conversation state to waiting for email
+                    context.user_data['payment_state'] = self.WAITING_FOR_EMAIL
+            else:
+                # Use regular payment method with email collection
+                await query.message.edit_text(
+                    "Для оформления платежа нам необходим ваш email адрес. "
+                    "Он будет использован только для формирования чека.\n\n"
+                    "Пожалуйста, введите ваш email:"
+                )
+                # Set conversation state to waiting for email
+                context.user_data['payment_state'] = self.WAITING_FOR_EMAIL
+            
+        elif callback_data.startswith("payment_"):
+            parts = callback_data.split("_")
+            action = parts[1]
+            payment_id = parts[2] if len(parts) > 2 else None
+            
+            if action == "pay" and payment_id:
+                # User clicked on the payment link, nothing to do here as the URL opens in browser
+                pass
+                
+            elif action == "check" and payment_id:
+                # Check payment status
+                await self.check_payment_status(update, context)
+                
+            elif action == "cancel" and payment_id:
+                # Cancel payment
+                await query.message.edit_text(
+                    "Платеж был отменен. Вы можете попробовать снова позже.",
+                    reply_markup=get_subscription_keyboard()
+                )
 
-                message = f"{SUBSCRIPTION_MESSAGE}{trial_message}\n\n[Оформить подписку](payment_link)"
+    async def pre_checkout_query_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle pre-checkout queries from Telegram Payment"""
+        query = update.pre_checkout_query
+        
+        # Extract payment info from payload
+        payload = query.invoice_payload
+        logger.info(f"Received pre-checkout query with payload: {payload}")
+        
+        # You can perform additional validation here if needed
+        try:
+            # Always approve the pre-checkout query for now
+            await context.bot.answer_pre_checkout_query(
+                pre_checkout_query_id=query.id,
+                ok=True
+            )
+            logger.info(f"Pre-checkout query {query.id} approved")
+        except Exception as e:
+            logger.error(f"Error answering pre-checkout query: {str(e)}")
+            # Try to reject the query with an error message
+            try:
+                await context.bot.answer_pre_checkout_query(
+                    pre_checkout_query_id=query.id,
+                    ok=False,
+                    error_message="Произошла ошибка при обработке платежа. Пожалуйста, попробуйте позже."
+                )
+            except Exception as inner_e:
+                logger.error(f"Error rejecting pre-checkout query: {str(inner_e)}")
+    
+    async def successful_payment_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle successful payments from Telegram Payment"""
+        message = update.message
+        payment_info = message.successful_payment
+        user_id = update.effective_user.id
+        
+        logger.info(f"Received successful payment from user {user_id}")
+        logger.info(f"Payment info: {payment_info.to_dict()}")
+        
+        # Process the payment and activate subscription
+        success = self.payment_manager.process_successful_telegram_payment(user_id, payment_info.to_dict())
+        
+        if success:
+            # Get subscription details
+            subscription = self.db.get_subscription(user_id)
+            expiry_date = subscription.get('expiry_date', 'неизвестно')
+            
+            await message.reply_text(
+                f"🎉 Поздравляем! Ваш платеж успешно обработан!\n\n"
+                f"Ваша подписка активна до {expiry_date}.\n"
+                f"Теперь у вас есть доступ ко всем функциям бота.",
+                reply_markup=get_back_to_main_keyboard()
+            )
+        else:
+            await message.reply_text(
+                "Платеж прошел успешно, но возникла ошибка при активации подписки. "
+                "Пожалуйста, обратитесь в поддержку.",
+                reply_markup=get_back_to_main_keyboard()
+            )
 
-        await update.message.reply_text(
-            message, 
-            parse_mode='Markdown',
-            disable_web_page_preview=True
-        )
+    async def collect_email(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Collect email address for payment processing"""
+        # First check if we're actually in the email collection state
+        if not context.user_data.get('payment_state') == self.WAITING_FOR_EMAIL:
+            # We're not in email collection state, so this message is for some other handler
+            return
+        
+        email = update.message.text.strip()
+        # Better email validation using regex
+        if not EMAIL_REGEX.match(email):
+            await update.message.reply_text(
+                "Пожалуйста, введите корректный email адрес (например, user@example.com)."
+            )
+            return
+            
+        # Save email to user data
+        context.user_data['email'] = email
+        plan_type = context.user_data.get('selected_plan')
+        
+        if not plan_type:
+            await update.message.reply_text(
+                "Произошла ошибка. Пожалуйста, начните процесс подписки заново.",
+                reply_markup=get_subscription_keyboard()
+            )
+            return
+            
+        # Create payment with the collected email
+        try:
+            payment_info = self.payment_manager.create_payment(
+                update.effective_user.id, 
+                plan_type,
+                email=email
+            )
+            
+            if payment_info:
+                # Create keyboard with payment options
+                payment_keyboard = get_payment_keyboard(
+                    payment_info["payment_url"], 
+                    payment_info["payment_id"]
+                )
+                
+                plans = self.payment_manager.get_subscription_plans()
+                selected_plan = plans.get(plan_type, {"name": "Подписка", "price": 0})
+                
+                await update.message.reply_text(
+                    f"💳 *Оплата {selected_plan['name']}*\n\n"
+                    f"Стоимость: {selected_plan['price']} ₽\n"
+                    f"Email для чека: {email}\n\n"
+                    "Нажмите на кнопку \"Оплатить\" для перехода на страницу оплаты.",
+                    reply_markup=payment_keyboard,
+                    parse_mode='Markdown'
+                )
+                
+                # Reset payment state
+                context.user_data.pop('payment_state', None)
+            else:
+                await update.message.reply_text(
+                    "Извините, произошла ошибка при обработке вашего платежа. Пожалуйста, попробуйте позже.",
+                    reply_markup=get_subscription_keyboard()
+                )
+        except Exception as e:
+            logger.error(f"Payment creation error: {str(e)}")
+            await update.message.reply_text(
+                "Извините, произошла ошибка при обработке вашего платежа. Пожалуйста, попробуйте позже.",
+                reply_markup=get_subscription_keyboard()
+            )
+
+    async def check_payment_status(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Check payment status and activate subscription if paid"""
+        # Handle both direct command and callback query
+        if update.callback_query:
+            query = update.callback_query
+            callback_data = query.data
+            parts = callback_data.split('_')
+            
+            if len(parts) >= 3 and parts[0] == 'payment' and parts[1] == 'check':
+                payment_id = parts[2]
+                logger.info(f"Checking payment status from callback for ID: {payment_id}")
+                
+                # Check payment status
+                payment_data = self.payment_manager.check_payment_status(payment_id)
+                
+                if not payment_data:
+                    await query.message.reply_text(
+                        "Не удалось получить информацию об оплате. Пожалуйста, попробуйте позже.",
+                        reply_markup=get_check_payment_keyboard(payment_id)
+                    )
+                    return
+                
+                if payment_data["status"] == "succeeded" or payment_data.get("paid", False):
+                    # Process successful payment
+                    success = self.payment_manager.process_successful_payment(payment_id)
+                    
+                    if success:
+                        # Get subscription details
+                        subscription = self.db.get_subscription(query.from_user.id)
+                        expiry_date = subscription.get('expiry_date', 'неизвестно')
+                        
+                        await query.message.reply_text(
+                            f"🎉 Поздравляем! Ваш платеж успешно обработан!\n\n"
+                            f"Ваша подписка активна до {expiry_date}.\n"
+                            f"Теперь у вас есть доступ ко всем функциям бота.",
+                            reply_markup=get_back_to_main_keyboard()
+                        )
+                    else:
+                        await query.message.reply_text(
+                            "Платеж прошел успешно, но возникла ошибка при активации подписки. "
+                            "Пожалуйста, обратитесь в поддержку.",
+                            reply_markup=get_back_to_main_keyboard()
+                        )
+                else:
+                    # Payment not yet successful, show status and check button
+                    status_msg = f"Статус платежа: {payment_data['status']}.\n\n"
+                    
+                    if payment_data["status"] == "pending":
+                        status_msg += "Платеж ожидает оплаты. Пожалуйста, завершите оплату или проверьте статус позже."
+                    elif payment_data["status"] == "canceled":
+                        status_msg += "Платеж был отменен. Вы можете попробовать снова."
+                    elif payment_data["status"] == "waiting_for_capture":
+                        status_msg += "Платеж ожидает подтверждения. Пожалуйста, проверьте статус позже."
+                    else:
+                        status_msg += "Пожалуйста, завершите оплату или проверьте статус позже."
+                        
+                    await query.message.reply_text(
+                        status_msg,
+                        reply_markup=get_check_payment_keyboard(payment_id)
+                    )
+            return
 
     async def handle_profile_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle profile-related callbacks"""
@@ -1155,12 +1563,44 @@ class BotHandlers:
             )
 
     async def handle_back_to_dashboard(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle back to dashboard button"""
+        """Handle back to main menu button presses"""
         query = update.callback_query
         await query.answer()
-
-        if query.data == "back_to_dashboard":
-            await self.show_progress(update, context)
+        
+        # Edit the message to show a dashboard menu
+        await query.message.edit_text(
+            "🏠 Главное меню\n\n"
+            "Выберите доступное действие из меню команд или воспользуйтесь кнопкой /help, "
+            "чтобы увидеть список всех команд."
+        )
+        logger.info(f"User {query.from_user.id} returned to dashboard")
+    
+    async def error_handler(self, update, context):
+        """Log Errors caused by Updates."""
+        logger.error(f"Exception while handling an update: {context.error}")
+        
+        # Send a message to the user if this is a message or callback update
+        if update and (update.message or update.callback_query):
+            user_id = update.effective_user.id if update.effective_user else "Unknown"
+            error_message = (
+                "😓 Произошла ошибка при обработке вашего запроса.\n"
+                "Пожалуйста, попробуйте еще раз или свяжитесь с поддержкой."
+            )
+            
+            try:
+                if update.callback_query:
+                    await update.callback_query.message.reply_text(error_message)
+                else:
+                    await update.message.reply_text(error_message)
+                    
+                logger.info(f"Sent error notification to user {user_id}")
+            except Exception as e:
+                logger.error(f"Failed to send error message: {e}")
+                
+        # Log the error with traceback for debugging
+        tb_list = traceback.format_exception(None, context.error, context.error.__traceback__)
+        tb_string = ''.join(tb_list)
+        logger.error(f"Traceback: {tb_string}")
 
     async def show_calendar(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle the /calendar command"""
@@ -1386,15 +1826,18 @@ class BotHandlers:
         try:
             # Generate workout based on selection
             if muscle_group == 'все_группы':
-                workout = self.workout_manager.generate_gym_workout(profile)
+                workout = self.workout_manager.generate_gym_workout(profile, user_id)
             else:
-                workout = self.workout_manager.generate_muscle_group_workout(profile, muscle_group)
+                workout = self.workout_manager.generate_muscle_group_workout(profile, muscle_group, user_id)
 
             if not workout:
                 logger.error(f"Failed to generate workout for muscle group: {muscle_group}")
                 await query.message.reply_text("Не удалось создать тренировку. Попробуйте еще раз.")
                 return
 
+            # Ensure workout starts from the first exercise
+            workout['current_exercise'] = 0
+            
             if callback_type == 'preview':
                 # Save as preview and show overview
                 self.db.save_preview_workout(user_id, workout)
@@ -1435,112 +1878,81 @@ class BotHandlers:
         self.db.save_subscription(user_id, subscription_data)
 
     def get_handlers(self):
-        """Return list of handlers to be registered"""
-        # Create profile handler
-        profile_handler = ConversationHandler(
-            entry_points=[
-                CommandHandler('profile', self.start_profile),
-                CallbackQueryHandler(self.handle_profile_callback, pattern='^(update_profile|update_profile_full|keep_profile)$')
-            ],
-            states={
-                AGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.age)],
-                HEIGHT: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.height)],
-                WEIGHT: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.weight)],
-                SEX: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.sex)],
-                GOALS: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.goals)],
-                FITNESS_LEVEL: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.fitness_level)],
-                EQUIPMENT: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.equipment)]
-            },
-            fallbacks=[CommandHandler('cancel', self.cancel)],
-            name="profile_conversation", # Add name for better logging
-            per_message=False # Allow callbacks to be processed for the whole conversation
-        )
-        logger.info("Profile conversation handler registered")
-
+        """Return all handlers for the bot"""
         return [
-            CommandHandler('start', self.start),
-            CommandHandler('help', self.help),
-            CommandHandler('workout', self.workout),
-            CommandHandler('start_workout', self.start_workout),
-            CommandHandler('view_profile', self.view_profile),
-            CommandHandler('progress', self.show_progress),
-            CommandHandler('reminder', self.set_reminder),
-            CommandHandler('calendar', self.show_calendar),
-            CommandHandler('subscription', self.subscription),
-            profile_handler,
+            CommandHandler("start", self.start),
+            CommandHandler("help", self.help),
+            CommandHandler("view_profile", self.view_profile),
+            CommandHandler("workout", self.workout),
+            CommandHandler("start_workout", self.start_workout),
+            CommandHandler("progress", self.show_progress),
+            CommandHandler("calendar", self.show_calendar),
+            CommandHandler("reminder", self.set_reminder),
+            CommandHandler("subscription", self.subscription),
+            # Add handler for email collection - just intercept ALL text messages and filter in the handler
+            MessageHandler(filters.TEXT & ~filters.COMMAND, self.collect_email),
             # Add workout feedback handler
             CallbackQueryHandler(
                 self.handle_workout_feedback,
-                pattern='^feedback_(fun|not_fun|too_easy|ok|tired)$'
+                pattern="^feedback_"
             ),
-            # Add workout control handlers
-            CallbackQueryHandler(
-                self.handle_gym_workout_callback,
-                pattern='^(exercise_timer_|circuit_rest_|exercise_rest_|rest_|exercise_done|set_done|prev_exercise|next_exercise|finish_workout)$'
-            ),
-            # Add reminder handlers
-            CallbackQueryHandler(
-                self.handle_reminder_callback,
-                pattern='^reminder_'
-            ),
-            # Add calendar navigation handlers
-            CallbackQueryHandler(
-                self.handle_calendar_callback,
-                pattern='^(calendar_|date_)$'
-            ),
-            CallbackQueryHandler(
-                self.handle_muscle_group_selection,
-                pattern='^(muscle_|preview_)'
-            ),
-            CallbackQueryHandler(self.handle_progress_callback, pattern='^(progress_weekly|progress_monthly|achievements|workout_history|intensity_analysis|back_to_dashboard)$'),
             CommandHandler('premium', self.premium_access)
         ]
+    
+    # We'll keep this method for reference but not use it directly in filters
+    def in_payment_email_state(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
+        """Check if user is in email collection state"""
+        return context.user_data.get('payment_state') == self.WAITING_FOR_EMAIL
 
     def register_handlers(self, application):
-        """Register all handlers"""
-        # Register profile handler first (it has its own conversation handler)
-        handlers = self.get_handlers()
-        for handler in handlers:
-            if isinstance(handler, ConversationHandler) and getattr(handler, 'name', '') == 'profile_conversation':
-                application.add_handler(handler)
-                logger.info("Added profile conversation handler")
-                break
-
-        # Command handlers
-        application.add_handler(CommandHandler("start", self.start))
-        application.add_handler(CommandHandler("help", self.help))
-        application.add_handler(CommandHandler("view_profile", self.view_profile))
-        application.add_handler(CommandHandler("workout", self.workout))
-        application.add_handler(CommandHandler("start_workout", self.start_workout))
-        application.add_handler(CommandHandler("progress", self.show_progress))
-        application.add_handler(CommandHandler("calendar", self.show_calendar))
-        application.add_handler(CommandHandler("reminder", self.set_reminder))
-        application.add_handler(CommandHandler("subscription", self.subscription))
-
-        # Add dedicated handler for profile updates outside of conversation
-        application.add_handler(CallbackQueryHandler(self.handle_profile_callback, pattern=r"^(update_profile|update_profile_full|keep_profile)$"))
+        """Register all handlers with the application"""
+        # Register command handlers
+        for handler in self.get_handlers():
+            application.add_handler(handler)
+            
+        # Add custom error handler
+        application.add_error_handler(self.error_handler)
         
-        # Other callback handlers
-        application.add_handler(CallbackQueryHandler(self.handle_workout_feedback, pattern=r"^feedback_"))
-        application.add_handler(CallbackQueryHandler(
-            self.handle_gym_workout_callback,
-            pattern=r"^(exercise_timer_|circuit_rest_|exercise_rest_|rest_|exercise_done|set_done|prev_exercise|next_exercise|finish_workout)"
-        ))
-        application.add_handler(CallbackQueryHandler(self.handle_reminder_callback, pattern=r"^reminder_"))
-        application.add_handler(CallbackQueryHandler(self.handle_progress_callback, pattern=r"^(progress_weekly|progress_monthly|achievements|workout_history|intensity_analysis|back_to_dashboard)$"))
-        application.add_handler(CallbackQueryHandler(self.handle_muscle_group_selection, pattern=r"^(muscle_|preview_)"))
-
-        # Add middleware check for subscription
-        application.add_handler(TypeHandler(Update, self.check_subscription_middleware), group=-1)
-
-        # Add premium access handler
-        application.add_handler(CommandHandler("premium", self.premium_access))
+        # Create profile conversation handler
+        profile_handler = ConversationHandler(
+            entry_points=[
+                CommandHandler('profile', self.start_profile)
+            ],
+            states={
+                # States are defined as class variables
+                self.PROFILE: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_profile_input)]
+            },
+            fallbacks=[CommandHandler('cancel', self.cancel_profile)]
+        )
+        application.add_handler(profile_handler)
+        
+        # Add various callback query handlers
+        application.add_handler(CallbackQueryHandler(self.handle_muscle_group_selection, pattern='^muscle_'))
+        application.add_handler(CallbackQueryHandler(self.handle_calendar_callback, pattern='^(calendar|date)_'))
+        application.add_handler(CallbackQueryHandler(self.handle_reminder_callback, pattern='^reminder_'))
+        application.add_handler(CallbackQueryHandler(self.handle_workout_feedback, pattern='^feedback_'))
+        application.add_handler(CallbackQueryHandler(self.handle_gym_workout_callback, pattern='^workout_'))
+        application.add_handler(CallbackQueryHandler(self.handle_progress_callback, pattern='^progress_'))
+        application.add_handler(CallbackQueryHandler(self.handle_profile_callback, pattern='^(update_profile|update_profile_full|keep_profile)$'))
+        
+        # Add payment and subscription handlers
+        application.add_handler(CallbackQueryHandler(self.handle_subscription_callback, pattern='^subscription_'))
+        application.add_handler(CallbackQueryHandler(self.handle_subscription_callback, pattern='^plan_'))
+        application.add_handler(CallbackQueryHandler(self.check_payment_status, pattern='^payment_check_'))
+        application.add_handler(CallbackQueryHandler(self.handle_subscription_callback, pattern='^payment_cancel_'))
+        
+        # Add Telegram payment handlers
+        application.add_handler(PreCheckoutQueryHandler(self.pre_checkout_query_handler))
+        application.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, self.successful_payment_handler))
+        
+        # Default back to main menu handler
+        application.add_handler(CallbackQueryHandler(self.handle_back_to_dashboard, pattern='^back_to_main$'))
+        
+        logger.info("All handlers registered successfully")
 
     async def cancel_profile(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Cancel profile creation"""
-        await update.message.reply_text(
-            "Создание профиля отменено. Используйте /profile чтобы начать заново."
-        )
+        """Cancel profile creation/editing"""
+        await update.message.reply_text("Создание профиля отменено. Используйте /help чтобы увидеть доступные команды.")
         return ConversationHandler.END
 
     async def help(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1657,3 +2069,108 @@ class BotHandlers:
         else:
             logger.warning(f"Admin {user_id} used invalid action: {action}")
             await update.message.reply_text("⚠️ Неверная команда. Используйте 'add' или 'remove'.")
+
+    def _safe_float_convert(self, value):
+        try:
+            return float(value)
+        except (ValueError, TypeError):
+            return 0
+
+    async def handle_profile_input(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle user input during profile creation/update"""
+        user_id = update.effective_user.id
+        text = update.message.text
+        
+        # Determine what field we're collecting based on the state
+        current_state = context.user_data.get('profile_state', None)
+        profile_data = context.user_data.get('profile_data', {})
+        
+        if not current_state:
+            await update.message.reply_text(
+                "Извините, произошла ошибка. Пожалуйста, начните заново командой /profile"
+            )
+            return ConversationHandler.END
+            
+        if current_state == 'age':
+            try:
+                age = int(text)
+                if age < 13 or age > 100:
+                    await update.message.reply_text(
+                        "Пожалуйста, введите корректный возраст (от 13 до 100 лет)."
+                    )
+                    return self.PROFILE
+                profile_data['age'] = age
+                
+                # Next, ask for height
+                await update.message.reply_text("Укажите ваш рост (в см):")
+                context.user_data['profile_state'] = 'height'
+                return self.PROFILE
+                
+            except ValueError:
+                await update.message.reply_text(
+                    "Пожалуйста, введите возраст числом."
+                )
+                return self.PROFILE
+                
+        elif current_state == 'height':
+            try:
+                height = self._safe_float_convert(text)
+                if height < 100 or height > 250:
+                    await update.message.reply_text(
+                        "Пожалуйста, введите корректный рост (от 100 до 250 см)."
+                    )
+                    return self.PROFILE
+                profile_data['height'] = height
+                
+                # Next, ask for weight
+                await update.message.reply_text("Укажите ваш вес (в кг):")
+                context.user_data['profile_state'] = 'weight'
+                return self.PROFILE
+                
+            except ValueError:
+                await update.message.reply_text(
+                    "Пожалуйста, введите рост числом."
+                )
+                return self.PROFILE
+                
+        elif current_state == 'weight':
+            try:
+                weight = self._safe_float_convert(text)
+                if weight < 30 or weight > 300:
+                    await update.message.reply_text(
+                        "Пожалуйста, введите корректный вес (от 30 до 300 кг)."
+                    )
+                    return self.PROFILE
+                profile_data['weight'] = weight
+                
+                # Next, ask for sex
+                await update.message.reply_text(
+                    "Укажите ваш пол:",
+                    reply_markup=get_sex_keyboard()
+                )
+                context.user_data['profile_state'] = 'sex'
+                return self.PROFILE
+                
+            except ValueError:
+                await update.message.reply_text(
+                    "Пожалуйста, введите вес числом."
+                )
+                return self.PROFILE
+                
+        # ... other states like sex, goals, fitness_level, equipment would go here
+                
+        # Save the updated profile data
+        context.user_data['profile_data'] = profile_data
+        
+        # If we've collected all fields, save the profile
+        if current_state == 'equipment':
+            # Save the complete profile
+            await self.save_profile(user_id, profile_data, update.message.from_user.username)
+            
+            await update.message.reply_text(
+                "Ваш профиль успешно сохранен! Теперь вы можете начать тренировки с помощью команды /workout.",
+                reply_markup=get_back_to_main_keyboard()
+            )
+            return ConversationHandler.END
+            
+        return self.PROFILE

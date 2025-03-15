@@ -230,62 +230,81 @@ class WorkoutManager:
         if not self.db:
             return exercise_data
 
-        # Get recent feedback analysis
-        feedback = self.db.get_recent_feedback(user_id)
-        physical_state = feedback.get('physical_state', 'ok')
-        emotional_state = feedback.get('emotional_state', 'good')
+        try:
+            # Get recent feedback analysis
+            feedback = self.db.get_recent_feedback(user_id)
+            physical_state = feedback.get('physical_state', 'ok')
+            emotional_state = feedback.get('emotional_state', 'good')
 
-        # Log feedback and adaptation process
-        logger.info(f"Applying adaptations for user {user_id}")
-        logger.info(f"User feedback - Physical: {physical_state}, Emotional: {emotional_state}")
-        logger.info(f"Original exercise data: {exercise_data}")
+            # Log feedback and adaptation process
+            logger.info(f"Applying adaptations for user {user_id}")
+            logger.info(f"User feedback - Physical: {physical_state}, Emotional: {emotional_state}")
+            logger.info(f"Original exercise data: {exercise_data}")
 
-        # Get multipliers for the current physical state
-        multipliers = self.physical_state_multipliers.get(physical_state, 
-                                                        self.physical_state_multipliers['ok'])
-        logger.info(f"Using adaptation multipliers: {multipliers}")
+            # Get multipliers for the current physical state
+            multipliers = self.physical_state_multipliers.get(physical_state, 
+                                                            self.physical_state_multipliers['ok'])
+            logger.info(f"Using adaptation multipliers: {multipliers}")
 
-        # Apply adaptations based on physical state
-        if is_gym_workout:
-            # Adjust gym workout parameters
-            if 'reps' in exercise_data:
-                old_reps = exercise_data['reps']
-                exercise_data['reps'] = max(1, round(exercise_data['reps'] * multipliers['reps']))
-                logger.info(f"Adjusted reps: {old_reps} -> {exercise_data['reps']}")
+            # Apply adaptations based on physical state
+            if is_gym_workout:
+                # Adjust gym workout parameters based on exercise type
+                is_time_based = exercise_data.get('is_time_based', False)
+                
+                # Handle time-based and rep-based exercises separately
+                if is_time_based:
+                    # Only adjust time for time-based exercises
+                    if 'time' in exercise_data:
+                        old_time = exercise_data['time']
+                        exercise_data['time'] = max(10, round(exercise_data['time'] * multipliers['time']))
+                        logger.info(f"Adjusted time: {old_time} -> {exercise_data['time']}")
+                else:
+                    # Only adjust reps for rep-based exercises
+                    if 'reps' in exercise_data:
+                        old_reps = exercise_data['reps']
+                        exercise_data['reps'] = max(1, round(exercise_data['reps'] * multipliers['reps']))
+                        logger.info(f"Adjusted reps: {old_reps} -> {exercise_data['reps']}")
 
-            if 'weight' in exercise_data:
-                old_weight = exercise_data['weight']
-                exercise_data['weight'] = max(0, round(exercise_data['weight'] * multipliers['weight']))
-                logger.info(f"Adjusted weight: {old_weight} -> {exercise_data['weight']}")
+                # Adjust common parameters for all exercises
+                if 'weight' in exercise_data:
+                    old_weight = exercise_data['weight']
+                    exercise_data['weight'] = max(0, round(exercise_data['weight'] * multipliers['weight']))
+                    logger.info(f"Adjusted weight: {old_weight} -> {exercise_data['weight']}")
 
-            if 'sets' in exercise_data:
-                old_sets = exercise_data['sets']
-                exercise_data['sets'] = max(1, exercise_data['sets'] + multipliers['sets'])
-                logger.info(f"Adjusted sets: {old_sets} -> {exercise_data['sets']}")
+                if 'sets' in exercise_data:
+                    old_sets = exercise_data['sets']
+                    exercise_data['sets'] = max(1, exercise_data['sets'] + multipliers['sets'])
+                    logger.info(f"Adjusted sets: {old_sets} -> {exercise_data['sets']}")
 
-            if 'sets_rest' in exercise_data:
-                old_rest = exercise_data['sets_rest']
-                exercise_data['sets_rest'] = max(30, round(exercise_data['sets_rest'] * multipliers['rest']))
-                logger.info(f"Adjusted rest time: {old_rest} -> {exercise_data['sets_rest']}")
-        else:
-            # Adjust bodyweight workout parameters
-            if 'time' in exercise_data:
-                old_time = exercise_data['time']
-                exercise_data['time'] = max(10, round(exercise_data['time'] * multipliers['time']))
-                logger.info(f"Adjusted time: {old_time} -> {exercise_data['time']}")
+                if 'sets_rest' in exercise_data:
+                    old_rest = exercise_data['sets_rest']
+                    exercise_data['sets_rest'] = max(30, round(exercise_data['sets_rest'] * multipliers['rest']))
+                    logger.info(f"Adjusted rest time: {old_rest} -> {exercise_data['sets_rest']}")
+            else:
+                # Adjust bodyweight workout parameters
+                # For bodyweight, we could have both time and reps in the same exercise
+                if 'time' in exercise_data:
+                    old_time = exercise_data['time']
+                    exercise_data['time'] = max(10, round(exercise_data['time'] * multipliers['time']))
+                    logger.info(f"Adjusted time: {old_time} -> {exercise_data['time']}")
 
-            if 'reps' in exercise_data:
-                old_reps = exercise_data['reps']
-                exercise_data['reps'] = max(1, round(exercise_data['reps'] * multipliers['reps']))
-                logger.info(f"Adjusted reps: {old_reps} -> {exercise_data['reps']}")
+                if 'reps' in exercise_data:
+                    old_reps = exercise_data['reps']
+                    exercise_data['reps'] = max(1, round(exercise_data['reps'] * multipliers['reps']))
+                    logger.info(f"Adjusted reps: {old_reps} -> {exercise_data['reps']}")
 
-            if 'exercises_rest' in exercise_data:
-                old_rest = exercise_data['exercises_rest']
-                exercise_data['exercises_rest'] = max(15, round(exercise_data['exercises_rest'] * multipliers['rest']))
-                logger.info(f"Adjusted rest time: {old_rest} -> {exercise_data['exercises_rest']}")
+                if 'exercises_rest' in exercise_data:
+                    old_rest = exercise_data['exercises_rest']
+                    exercise_data['exercises_rest'] = max(15, round(exercise_data['exercises_rest'] * multipliers['rest']))
+                    logger.info(f"Adjusted rest time: {old_rest} -> {exercise_data['exercises_rest']}")
 
-        logger.info(f"Final adapted exercise data: {exercise_data}")
-        return exercise_data
+            logger.info(f"Final adapted exercise data: {exercise_data}")
+            return exercise_data
+            
+        except Exception as e:
+            logger.error(f"Error applying feedback adaptations: {e}", exc_info=True)
+            # Return the original exercise data if adaptation fails
+            return exercise_data
 
     def _get_gym_workout_base(self, user_profile, allowed_difficulties):
         """Get base parameters for gym workout generation"""
@@ -323,27 +342,37 @@ class WorkoutManager:
         level_weight_mult, gender_weight_mult = weight_mults
         
         # Get base values
-        base_reps = self._safe_float_convert(exercise.get('base_reps', 12))
+        base_reps = self._safe_float_convert(exercise.get('base_reps', 0))
+        base_time = self._safe_float_convert(exercise.get('base_time', 0))
         base_weight = self._safe_float_convert(exercise.get('weight', 0))
         base_sets = self._safe_float_convert(exercise.get('sets', 3))
         base_sets_rest = self._safe_float_convert(exercise.get('base_sets_rest', 60))
 
-        # Apply multipliers
-        reps = round(base_reps * goal_mults['reps'])
-        weight = round(base_weight * goal_mults['weight'] * level_weight_mult * gender_weight_mult)
-        sets = max(1, round(base_sets + goal_mults['sets']))  # Ensure at least 1 set
-        sets_rest = round(base_sets_rest * goal_mults['sets_rest'])
-
+        # Determine exercise type based on available data
+        # If both time and reps are present, prioritize based on which one is the primary metric
+        is_time_based = base_time > 0 and (base_reps == 0 or base_time > base_reps)
+        
         exercise_data = {
             'name': exercise['name'],
             'target_muscle': exercise['target_muscle'],
             'difficulty': exercise.get('difficulty', ''),
-            'reps': reps,
-            'weight': weight,
-            'sets': sets,
-            'sets_rest': sets_rest,
-            'current_set': 1
+            'sets': int(max(1, round(base_sets + goal_mults['sets']))),  # Ensure at least 1 set
+            'sets_rest': int(round(base_sets_rest * goal_mults['sets_rest'])),
+            'current_set': 1,
+            'is_time_based': is_time_based
         }
+        
+        # Only add weight if it's relevant (non-zero)
+        if base_weight > 0:
+            exercise_data['weight'] = int(round(base_weight * goal_mults['weight'] * level_weight_mult * gender_weight_mult))
+        
+        # Strictly add either time OR reps based on the exercise type, never both
+        if is_time_based:
+            # Time-based exercise (like treadmill, plank, etc.)
+            exercise_data['time'] = int(round(base_time * goal_mults['reps']))  # Use reps multiplier for time scaling too
+        else:
+            # Rep-based exercise (like bicep curls, squats, etc.)
+            exercise_data['reps'] = int(round(base_reps * goal_mults['reps']))
 
         # Add GIF URL if available
         self._add_gif_url(exercise, exercise_data)
@@ -522,34 +551,34 @@ class WorkoutManager:
             
             # If Google Sheets service not available, try local file
             logger.info("Google Sheets service not available, trying local file")
-            raise Exception("Fallback to local file")
-            
+            # Continue to local file loading instead of raising an exception
         except Exception as e:
             logger.warning(f"Error loading exercises from Google Sheets: {e}")
+        
+        # Try to load from local JSON file
+        try:
+            exercises_file = os.path.join('fitness_coach_bot', 'data', 'exercises.json')
             
-            # Try to load from local JSON file
-            try:
-                exercises_file = os.path.join('fitness_coach_bot', 'data', 'exercises.json')
-                
-                if os.path.exists(exercises_file):
-                    with open(exercises_file, 'r', encoding='utf-8') as f:
-                        logger.info(f"Loading exercises from local file: {exercises_file}")
-                        self.exercises_df = pd.DataFrame(json.load(f))
-                        logger.info(f"Loaded {len(self.exercises_df)} exercises from local file")
-                        return
-                        
-                logger.warning(f"Local exercises file not found at {exercises_file}")
-            except Exception as local_e:
-                logger.error(f"Error loading exercises from local file: {local_e}")
-            
-            # If all else fails, use default exercises
-            logger.warning("Using default exercise data as fallback")
-            self.exercises_df = self._get_default_exercises()
-            logger.info(f"Created {len(self.exercises_df)} default exercises")
+            if os.path.exists(exercises_file):
+                with open(exercises_file, 'r', encoding='utf-8') as f:
+                    logger.info(f"Loading exercises from local file: {exercises_file}")
+                    self.exercises_df = pd.DataFrame(json.load(f))
+                    logger.info(f"Loaded {len(self.exercises_df)} exercises from local file")
+                    return
+                    
+            logger.warning(f"Local exercises file not found at {exercises_file}")
+        except Exception as local_e:
+            logger.error(f"Error loading exercises from local file: {local_e}")
+        
+        # If all else fails, use default exercises
+        logger.warning("Using default exercise data as fallback")
+        self.exercises_df = self._get_default_exercises()
+        logger.info(f"Created {len(self.exercises_df)} default exercises")
 
     def _get_default_exercises(self):
         # Create a default set of exercises if we can't load from Google Sheets or local file
         default_exercises = [
+            # Bodyweight exercises
             {
                 "name": "Приседания", 
                 "target_muscle": "ноги",
@@ -594,6 +623,113 @@ class WorkoutManager:
                 "type": "compound",
                 "base_reps": 12,
                 "base_time": 0
+            },
+            # Gym exercises
+            {
+                "name": "Жим штанги лежа", 
+                "target_muscle": "грудь",
+                "difficulty": "средний",
+                "equipment": "зал",
+                "type": "compound",
+                "base_reps": 10,
+                "base_time": 0,
+                "weight": 40,
+                "sets": 3,
+                "base_sets_rest": 60
+            },
+            {
+                "name": "Тяга штанги в наклоне", 
+                "target_muscle": "спина",
+                "difficulty": "средний",
+                "equipment": "зал",
+                "type": "compound",
+                "base_reps": 10,
+                "base_time": 0,
+                "weight": 40,
+                "sets": 3,
+                "base_sets_rest": 60
+            },
+            {
+                "name": "Приседания со штангой", 
+                "target_muscle": "квадрицепс",
+                "difficulty": "средний",
+                "equipment": "зал",
+                "type": "compound",
+                "base_reps": 12,
+                "base_time": 0,
+                "weight": 50,
+                "sets": 3,
+                "base_sets_rest": 60
+            },
+            {
+                "name": "Становая тяга", 
+                "target_muscle": "задняя поверхность ног",
+                "difficulty": "средний",
+                "equipment": "зал",
+                "type": "compound",
+                "base_reps": 8,
+                "base_time": 0,
+                "weight": 60,
+                "sets": 3,
+                "base_sets_rest": 90
+            },
+            {
+                "name": "Сгибание рук со штангой", 
+                "target_muscle": "бицепс",
+                "difficulty": "средний",
+                "equipment": "зал",
+                "type": "isolation",
+                "base_reps": 12,
+                "base_time": 0,
+                "weight": 20,
+                "sets": 3,
+                "base_sets_rest": 60
+            },
+            {
+                "name": "Разгибание рук на блоке", 
+                "target_muscle": "трицепс",
+                "difficulty": "средний",
+                "equipment": "зал",
+                "type": "isolation",
+                "base_reps": 12,
+                "base_time": 0,
+                "weight": 15,
+                "sets": 3,
+                "base_sets_rest": 60
+            },
+            {
+                "name": "Разминка на беговой дорожке", 
+                "target_muscle": "разминка",
+                "difficulty": "начальный",
+                "equipment": "зал",
+                "type": "cardio",
+                "base_reps": 0,
+                "base_time": 300,
+                "sets": 1,
+                "base_sets_rest": 0
+            },
+            {
+                "name": "Скручивания на наклонной скамье", 
+                "target_muscle": "пресс",
+                "difficulty": "средний",
+                "equipment": "зал",
+                "type": "isolation",
+                "base_reps": 15,
+                "base_time": 0,
+                "sets": 3,
+                "base_sets_rest": 60
+            },
+            {
+                "name": "Жим гантелей над головой", 
+                "target_muscle": "плечи",
+                "difficulty": "средний",
+                "equipment": "зал",
+                "type": "compound",
+                "base_reps": 10,
+                "base_time": 0,
+                "weight": 15,
+                "sets": 3,
+                "base_sets_rest": 60
             }
         ]
         return pd.DataFrame(default_exercises)
@@ -775,7 +911,30 @@ class WorkoutManager:
             overview += f"\n💪 {muscle.title()}:\n"
             for ex in exercises:
                 overview += f"• {ex['name']}\n"
-                overview += f"  📊 {ex['reps']} повторений x {ex['sets']} подходов\n"
+                
+                # Check if exercise has time or reps data
+                has_time = 'time' in ex and ex.get('time', 0) > 0
+                has_reps = 'reps' in ex and ex.get('reps', 0) > 0
+                
+                if has_time:
+                    # Handle time-based exercise
+                    time_value = ex['time']
+                    time_minutes = time_value // 60
+                    time_seconds = time_value % 60
+                    
+                    if time_minutes > 0:
+                        time_str = f"{time_minutes} мин {time_seconds} сек"
+                    else:
+                        time_str = f"{time_seconds} сек"
+                        
+                    overview += f"  ⏱ {time_str} x {ex['sets']} подходов\n"
+                elif has_reps:
+                    # Handle rep-based exercise
+                    overview += f"  📊 {ex['reps']} повторений x {ex['sets']} подходов\n"
+                else:
+                    # Fallback for exercises without clear data
+                    overview += f"  📊 {ex.get('sets', 1)} подходов\n"
+                    
                 if ex.get('weight', 0) > 0:
                     overview += f"  🏋️ Вес: {ex['weight']} кг\n"
                 overview += f"  ⏰ Отдых: {ex['sets_rest']} сек\n\n"

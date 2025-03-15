@@ -12,3 +12,4 @@ google-auth-oauthlib
 trafilatura
 twilio
 boto3>=1.26.0
+yookassa>=2.3.0

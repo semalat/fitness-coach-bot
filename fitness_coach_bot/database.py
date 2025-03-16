@@ -253,31 +253,108 @@ class Database:
             self._write_json(self.users_file, users)
 
     def get_user_profile(self, user_id):
-        """Get user profile data"""
-        user_id = str(user_id)
-        if self.use_dynamo:
-            try:
-                response = self.users_table.get_item(
-                    Key={'user_id': user_id}
-                )
-                profile = response.get('Item', {})
+        """Get user profile data from the database"""
+        try:
+            if self.use_dynamo:
+                try:
+                    response = self.users_table.get_item(
+                        Key={'user_id': str(user_id)}
+                    )
+                    if 'Item' in response:
+                        return response['Item'].get('profile', {})
+                    return {}
+                except Exception as e:
+                    logger.error(f"DynamoDB error getting user profile: {str(e)}")
+                    return {}
+            else:
+                self._ensure_files_exist()
+                users_data = self._read_json(self.users_file)
+                return users_data.get(str(user_id), {}).get('profile', {})
+        except Exception as e:
+            logger.error(f"Error getting user profile: {str(e)}")
+            return {}
+            
+    def get_user_data(self, user_id):
+        """Get general user data from the database"""
+        try:
+            if self.use_dynamo:
+                try:
+                    response = self.users_table.get_item(
+                        Key={'user_id': str(user_id)}
+                    )
+                    if 'Item' in response:
+                        # Return the whole user item excluding 'profile' which is handled separately
+                        item = response['Item']
+                        data = {k: v for k, v in item.items() if k != 'profile' and k != 'user_id'}
+                        return data
+                    return {}
+                except Exception as e:
+                    logger.error(f"DynamoDB error getting user data: {str(e)}")
+                    return {}
+            else:
+                self._ensure_files_exist()
+                users_data = self._read_json(self.users_file)
+                # Get all user data except 'profile' which is handled separately
+                user_entry = users_data.get(str(user_id), {})
+                return {k: v for k, v in user_entry.items() if k != 'profile'}
+        except Exception as e:
+            logger.error(f"Error getting user data: {str(e)}")
+            return {}
+            
+    def save_user_data(self, user_id, data):
+        """Save general user data to the database"""
+        try:
+            if self.use_dynamo:
+                try:
+                    # Get current profile to preserve it
+                    profile = self.get_user_profile(user_id)
+                    
+                    # Prepare update expression
+                    update_expression = "SET "
+                    expression_attribute_values = {':user_id': str(user_id)}
+                    
+                    # Add each data field to the update
+                    for key, value in data.items():
+                        if key != 'profile' and key != 'user_id':  # Don't overwrite profile or user_id
+                            update_expression += f"{key} = :{key}, "
+                            expression_attribute_values[f':{key}'] = self._prepare_for_dynamo(value)
+                    
+                    # Add profile back if it exists
+                    if profile:
+                        update_expression += "profile = :profile"
+                        expression_attribute_values[':profile'] = self._prepare_for_dynamo(profile)
+                    else:
+                        # Remove trailing comma and space if no profile
+                        update_expression = update_expression.rstrip(', ')
+                        
+                    self.users_table.update_item(
+                        Key={'user_id': str(user_id)},
+                        UpdateExpression=update_expression,
+                        ExpressionAttributeValues=expression_attribute_values
+                    )
+                    return True
+                except Exception as e:
+                    logger.error(f"DynamoDB error saving user data: {str(e)}")
+                    return False
+            else:
+                self._ensure_files_exist()
+                users_data = self._read_json(self.users_file)
                 
-                # Convert any Decimal values back to float for easier handling
-                for key, value in list(profile.items()):
-                    if isinstance(value, Decimal):
-                        profile[key] = float(value)
-            except Exception as e:
-                logger.error(f"Error retrieving user profile from DynamoDB: {str(e)}")
-                profile = {}
-        else:
-            users = self._read_json(self.users_file)
-            profile = users.get(user_id, {})
-
-        # Log the retrieved profile
-        logger.info(f"Retrieved user profile - ID: {user_id}, Profile: {profile}")
-
-        return profile
-
+                # Create or update user entry
+                if str(user_id) not in users_data:
+                    users_data[str(user_id)] = {}
+                
+                # Update all fields except 'profile' which is handled separately
+                for key, value in data.items():
+                    if key != 'profile':  # Don't overwrite profile
+                        users_data[str(user_id)][key] = value
+                
+                self._write_json(self.users_file, users_data)
+                return True
+        except Exception as e:
+            logger.error(f"Error saving user data: {str(e)}")
+            return False
+            
     def save_workout_progress(self, user_id, workout_data):
         """Save workout progress to database"""
         user_id = str(user_id)  # Ensure user_id is string

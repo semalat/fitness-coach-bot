@@ -244,12 +244,15 @@ class Database:
 
         if self.use_dynamo:
             # Prepare the data for DynamoDB
-            dynamo_profile = self._prepare_for_dynamo(profile_data)
+            dynamo_profile = self._prepare_for_dynamo({'profile': profile_data})
             dynamo_profile['user_id'] = user_id
             self.users_table.put_item(Item=dynamo_profile)
         else:
             users = self._read_json(self.users_file)
-            users[user_id] = profile_data
+            # Create or update user entry with profile under 'profile' field
+            if user_id not in users:
+                users[user_id] = {}
+            users[user_id]['profile'] = profile_data
             self._write_json(self.users_file, users)
 
     def get_user_profile(self, user_id):

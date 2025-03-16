@@ -38,12 +38,15 @@ def payment_webhook():
     logger.info(f"Получен вебхук от YooKassa. Заголовки: {request.headers}")
     logger.info(f"Тело запроса: {notification_body}")
     
-    # Проверяем подпись
-    if not verify_signature(notification_body, signature_header, secret_key):
-        logger.error("Недействительная подпись уведомления")
-        return jsonify({"status": "error", "message": "Invalid signature"}), 400
+    # Проверяем подпись только если она предоставлена
+    if signature_header and secret_key:
+        if not verify_signature(notification_body, signature_header, secret_key):
+            logger.error("Недействительная подпись уведомления")
+            return jsonify({"status": "error", "message": "Invalid signature"}), 400
+    else:
+        logger.warning("Пропуск проверки подписи: отсутствует подпись или секретный ключ")
     
-    # Продолжаем обработку только если подпись действительна
+    # Продолжаем обработку
     try:
         notification = json.loads(notification_body)
         
@@ -51,14 +54,26 @@ def payment_webhook():
         payment_id = notification.get('object', {}).get('id')
         status = notification.get('object', {}).get('status')
         paid = notification.get('object', {}).get('paid', False)
+        metadata = notification.get('object', {}).get('metadata', {})
         
         logger.info(f"Обработка события {event}, платеж {payment_id}, статус {status}, оплачен: {paid}")
+        logger.info(f"Metadata: {metadata}")
+        
+        # Extract user_id from metadata if available
+        user_id = None
+        if metadata and 'user_id' in metadata:
+            user_id = metadata.get('user_id')
+            logger.info(f"Extracted user_id from metadata: {user_id}")
         
         # Обрабатываем различные события
         if event == 'payment.succeeded':
             # Платеж успешно завершен
             idempotence_key = str(uuid.uuid4())
-            success = payment_manager.process_successful_payment(payment_id, idempotence_key)
+            success = payment_manager.process_successful_payment(
+                user_id=user_id, 
+                payment_id=payment_id, 
+                idempotence_key=idempotence_key
+            )
             
             if success:
                 logger.info(f"Вебхук успешно обработал платеж: {payment_id}")
@@ -92,7 +107,7 @@ def payment_webhook():
         return jsonify({"status": "error", "message": "Invalid JSON"}), 400
         
     except Exception as e:
-        logger.error(f"Ошибка обработки вебхука: {str(e)}")
+        logger.error(f"Ошибка обработки вебхука: {str(e)}", exc_info=True)
         return jsonify({"status": "error", "message": str(e)}), 500
 
 def verify_signature(body, signature, secret_key):

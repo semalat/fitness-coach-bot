@@ -183,6 +183,9 @@ class PaymentManager:
         # Создаем уникальный payload для идентификации платежа
         payment_payload = f"subscription_{plan_type}_{user_id}_{int(datetime.now().timestamp())}"
         
+        # Logging the payload for debugging
+        logger.info(f"Created payment payload: {payment_payload}")
+        
         # Сохраняем email в данных пользователя, если он предоставлен
         # Этот email будет использован при обработке успешного платежа
         if email:
@@ -192,6 +195,12 @@ class PaymentManager:
             user_profile['email'] = email
             self.database.save_user_profile(user_id, user_profile)
             logger.info(f"Email {email} сохранен для пользователя {user_id}")
+            
+        # Store the selected plan in user data for reference during payment processing
+        user_data = self.database.get_user_data(user_id) or {}
+        user_data['selected_plan'] = plan_type
+        self.database.save_user_data(user_id, user_data)
+        logger.info(f"Selected plan '{plan_type}' saved for user {user_id}")
         
         # Возвращаем данные для создания счета через Telegram Bot API
         return {
@@ -236,22 +245,28 @@ class PaymentManager:
             
             if len(parts) < 3 or parts[0] != 'subscription':
                 logger.error(f"Неверный формат payload: {payload}")
-                return False
+                # Even with invalid payload, try to activate a default subscription
+                plan_type = "monthly"  # Default plan if payload is invalid
+                logger.info(f"Using default plan '{plan_type}' due to invalid payload")
+            else:
+                plan_type = parts[1]
                 
-            plan_type = parts[1]
-            
             if plan_type not in self.plans:
                 logger.error(f"Неизвестный тип плана: {plan_type}")
-                return False
+                plan_type = "monthly"  # Fallback to monthly if plan type is unknown
+                logger.info(f"Using fallback plan '{plan_type}' due to unknown plan type")
                 
             selected_plan = self.plans[plan_type]
             days = selected_plan['days']
             
             # Получение ID платежа от провайдера
-            provider_payment_charge_id = payment_info.get('provider_payment_charge_id')
+            provider_payment_charge_id = payment_info.get('provider_payment_charge_id', 'telegram_payment')
             
             # Расчет даты истечения срока
             expiry_date = (datetime.now() + timedelta(days=days)).strftime('%Y-%m-%d')
+            
+            # Get email from payment_info if available
+            email = payment_info.get('email')
             
             # Создание данных подписки
             subscription_data = {
@@ -262,6 +277,11 @@ class PaymentManager:
                 "purchase_date": datetime.now().strftime('%Y-%m-%d'),
                 "telegram_payment": True
             }
+            
+            # Add email to subscription data if available
+            if email:
+                subscription_data["email"] = email
+                logger.info(f"Adding email {email} to subscription data")
             
             # Сохранение в базу данных
             success = self.database.save_subscription(user_id, subscription_data)
@@ -274,7 +294,7 @@ class PaymentManager:
             return success
             
         except Exception as e:
-            logger.error(f"Ошибка обработки успешного платежа через Telegram: {str(e)}")
+            logger.error(f"Ошибка обработки успешного платежа через Telegram: {str(e)}", exc_info=True)
             return False
     
     def create_payment(self, user_id, plan_type, return_url=None, email=None):

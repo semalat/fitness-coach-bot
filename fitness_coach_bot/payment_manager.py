@@ -401,41 +401,89 @@ class PaymentManager:
             logger.error(f"Не удалось проверить статус платежа: {str(e)}")
             return None
     
-    def process_successful_payment(self, payment_id, idempotence_key=None):
+    def process_successful_payment(self, user_id, payment_id, email=None, idempotence_key=None):
         """Обработать успешный платеж и активировать подписку"""
-        if not self.payment_enabled:
+        if not self.payment_enabled and not self.telegram_payment_enabled:
             logger.error("Платежная система не включена")
-            return False
+            return {"success": False}
         
+        # For Telegram payments, we might not need to check with YooKassa
+        if self.telegram_payment_enabled and user_id:
+            # Get the selected plan from the database or use a default
+            plan_type = "monthly"  # Default to monthly
+            days = 30  # Default to 30 days
+            
+            # Retrieve the user's last selected plan if available
+            user_data = self.database.get_user_data(user_id)
+            if user_data and 'selected_plan' in user_data:
+                plan_type = user_data['selected_plan']
+                days = 365 if plan_type == 'yearly' else 30
+            
+            # Calculate expiry date
+            expiry_date = (datetime.now() + timedelta(days=days)).strftime('%Y-%m-%d')
+            
+            # Create subscription data
+            subscription_data = {
+                "active": True,
+                "expiry_date": expiry_date,
+                "plan": plan_type,
+                "payment_id": payment_id,
+                "purchase_date": datetime.now().strftime('%Y-%m-%d'),
+                "email": email
+            }
+            
+            # Save to database
+            success = self.database.save_subscription(user_id, subscription_data)
+            
+            if success:
+                logger.info(f"Activated subscription for user {user_id} until {expiry_date}")
+                return {
+                    "success": True,
+                    "expiry_date": expiry_date,
+                    "plan": plan_type
+                }
+            else:
+                logger.error(f"Failed to save subscription for user {user_id}")
+                return {"success": False}
+        
+        # For YooKassa payments, check payment status
         payment_data = self.check_payment_status(payment_id)
         if not payment_data:
             logger.error(f"Не удалось получить данные платежа {payment_id}")
-            return False
+            return {"success": False}
             
         if payment_data["status"] != "succeeded" and not payment_data.get("paid", False):
             logger.error(f"Платеж {payment_id} не успешен, статус: {payment_data['status']}")
-            return False
+            return {"success": False}
         
         try:
             metadata = payment_data["metadata"]
-            user_id = metadata.get("user_id")
+            payment_user_id = metadata.get("user_id")
             days = int(metadata.get("days", 30))
             plan_type = metadata.get("plan_type", "monthly")
             
+            # If user_id was passed, use it; otherwise use from metadata
+            user_id = user_id or payment_user_id
+            
             if not user_id:
                 logger.error(f"Нет user_id в метаданных платежа {payment_id}")
-                return False
+                return {"success": False}
             
             # Проверяем, не активирована ли уже подписка по этому платежу
             existing_subscription = self.database.get_subscription(user_id)
             if existing_subscription and existing_subscription.get('payment_id') == payment_id:
                 logger.info(f"Подписка для платежа {payment_id} уже была активирована")
-                return True
+                expiry_date = existing_subscription.get('expiry_date', 'unknown')
+                return {
+                    "success": True,
+                    "expiry_date": expiry_date,
+                    "plan": existing_subscription.get('plan', 'monthly')
+                }
             
             # Расчет даты истечения срока
             expiry_date = (datetime.now() + timedelta(days=days)).strftime('%Y-%m-%d')
             
-            # Создание данных подписки
+            # Добавляем email к данным подписки, если он предоставлен
             subscription_data = {
                 "active": True,
                 "expiry_date": expiry_date,
@@ -444,19 +492,26 @@ class PaymentManager:
                 "purchase_date": datetime.now().strftime('%Y-%m-%d')
             }
             
+            if email:
+                subscription_data["email"] = email
+            
             # Сохранение в базу данных
             success = self.database.save_subscription(user_id, subscription_data)
             
             if success:
                 logger.info(f"Активирована подписка для пользователя {user_id} до {expiry_date}")
+                return {
+                    "success": True,
+                    "expiry_date": expiry_date,
+                    "plan": plan_type
+                }
             else:
                 logger.error(f"Не удалось сохранить подписку для пользователя {user_id}")
-                
-            return success
+                return {"success": False}
             
         except Exception as e:
             logger.error(f"Ошибка обработки успешного платежа: {str(e)}")
-            return False
+            return {"success": False}
             
     def handle_payment_callback(self, start_payload):
         """
@@ -488,7 +543,7 @@ class PaymentManager:
                 
             # Если платеж успешен, активируем подписку
             if payment_status["status"] == "succeeded" or payment_status.get("paid", False):
-                success = self.process_successful_payment(payment_id)
+                success = self.process_successful_payment(user_id, payment_id)
                 
                 if success:
                     # Получаем данные подписки

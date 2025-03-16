@@ -879,8 +879,13 @@ class BotHandlers:
 
         # Clear any existing user data
         context.user_data.clear()
+        
+        # Initialize profile state and data
+        context.user_data['profile_state'] = 'age'
+        context.user_data['profile_data'] = {}
+        
         await update.message.reply_text(messages.PROFILE_PROMPTS['age'])
-        return AGE
+        return self.PROFILE
 
     async def age(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle age input"""
@@ -1159,69 +1164,52 @@ class BotHandlers:
             
             # Save the selected plan in user data
             context.user_data['selected_plan'] = plan_type
+            user_id = query.from_user.id
+            plans = self.payment_manager.get_subscription_plans()
+            selected_plan = plans.get(plan_type, {"name": "Подписка", "price": 0})
             
-            # Check if Telegram native payments are available
-            if self.payment_manager.is_telegram_payment_enabled():
-                # Use Telegram native payments
-                user_id = query.from_user.id
-                
-                plans = self.payment_manager.get_subscription_plans()
-                selected_plan = plans.get(plan_type, {"name": "Подписка", "price": 0})
-                
-                await query.message.edit_text(
-                    f"💳 *Оплата {selected_plan['name']}*\n\n"
-                    f"Стоимость: {selected_plan['price']} ₽\n\n"
-                    "Сейчас вам будет выставлен счет для оплаты через Telegram. "
-                    "Вы сможете оплатить подписку, не покидая приложение.",
-                    parse_mode='Markdown'
-                )
-                
-                # Create invoice parameters
-                invoice_params = self.payment_manager.create_telegram_invoice(user_id, plan_type)
-                
-                if invoice_params:
-                    # Send invoice to user
-                    try:
-                        await context.bot.send_invoice(
-                            chat_id=user_id,
-                            title=invoice_params["title"],
-                            description=invoice_params["description"],
-                            payload=invoice_params["payload"],
-                            provider_token=invoice_params["provider_token"],
-                            currency=invoice_params["currency"],
-                            prices=invoice_params["prices"],
-                            need_email=invoice_params.get("need_email", True),
-                            send_email_to_provider=invoice_params.get("send_email_to_provider", True),
-                            provider_data=invoice_params.get("provider_data")
-                        )
-                        logger.info(f"Sent Telegram invoice to user {user_id} for plan {plan_type}")
-                    except Exception as e:
-                        logger.error(f"Error sending Telegram invoice: {str(e)}")
-                        # Fall back to regular payment method
-                        await query.message.edit_text(
-                            "Не удалось создать счет через Telegram. Пожалуйста, введите email для альтернативного способа оплаты:",
-                        )
-                        # Set conversation state to waiting for email
-                        context.user_data['payment_state'] = self.WAITING_FOR_EMAIL
-                else:
-                    # Fall back to regular payment method if invoice creation failed
-                    await query.message.edit_text(
-                        "Для оформления платежа нам необходим ваш email адрес. "
-                        "Он будет использован только для формирования чека.\n\n"
-                        "Пожалуйста, введите ваш email:"
+            # Always attempt to use Telegram native payments first
+            await query.message.edit_text(
+                f"💳 *Оплата {selected_plan['name']}*\n\n"
+                f"Стоимость: {selected_plan['price']} ₽\n\n"
+                "Сейчас вам будет выставлен счет для оплаты через Telegram. "
+                "Вы сможете оплатить подписку, не покидая приложение.",
+                parse_mode='Markdown'
+            )
+            
+            # Create invoice parameters
+            invoice_params = self.payment_manager.create_telegram_invoice(user_id, plan_type)
+            
+            if invoice_params:
+                # Send invoice to user
+                try:
+                    await context.bot.send_invoice(
+                        chat_id=user_id,
+                        title=invoice_params["title"],
+                        description=invoice_params["description"],
+                        payload=invoice_params["payload"],
+                        provider_token=invoice_params["provider_token"],
+                        currency=invoice_params["currency"],
+                        prices=invoice_params["prices"],
+                        need_email=True,  # Always request email through Telegram
+                        send_email_to_provider=True,
+                        provider_data=invoice_params.get("provider_data")
                     )
-                    # Set conversation state to waiting for email
-                    context.user_data['payment_state'] = self.WAITING_FOR_EMAIL
+                    logger.info(f"Sent Telegram invoice to user {user_id} for plan {plan_type}")
+                except Exception as e:
+                    logger.error(f"Error sending Telegram invoice: {str(e)}")
+                    # If Telegram payments fail, offer a fallback payment option without email collection
+                    await query.message.edit_text(
+                        "Не удалось создать счет через Telegram. Пожалуйста, свяжитесь с поддержкой для альтернативного способа оплаты.",
+                        reply_markup=get_back_to_main_keyboard()
+                    )
             else:
-                # Use regular payment method with email collection
+                # If invoice creation failed, offer support contact
                 await query.message.edit_text(
-                    "Для оформления платежа нам необходим ваш email адрес. "
-                    "Он будет использован только для формирования чека.\n\n"
-                    "Пожалуйста, введите ваш email:"
+                    "Извините, не удалось создать счет. Пожалуйста, свяжитесь с поддержкой для помощи с оплатой.",
+                    reply_markup=get_back_to_main_keyboard()
                 )
-                # Set conversation state to waiting for email
-                context.user_data['payment_state'] = self.WAITING_FOR_EMAIL
-            
+                
         elif callback_data.startswith("payment_"):
             parts = callback_data.split("_")
             action = parts[1]
@@ -1271,21 +1259,31 @@ class BotHandlers:
                 logger.error(f"Error rejecting pre-checkout query: {str(inner_e)}")
     
     async def successful_payment_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle successful payments from Telegram Payment"""
+        """Handle successful Telegram payments"""
         message = update.message
-        payment_info = message.successful_payment
+        successful_payment = message.successful_payment
         user_id = update.effective_user.id
         
         logger.info(f"Received successful payment from user {user_id}")
-        logger.info(f"Payment info: {payment_info.to_dict()}")
         
-        # Process the payment and activate subscription
-        success = self.payment_manager.process_successful_telegram_payment(user_id, payment_info.to_dict())
+        # Extract data from successful payment
+        telegram_payment_charge_id = successful_payment.telegram_payment_charge_id
+        provider_payment_charge_id = successful_payment.provider_payment_charge_id
+        payload = successful_payment.invoice_payload
+        email = successful_payment.order_info.email if successful_payment.order_info else None
         
-        if success:
-            # Get subscription details
-            subscription = self.db.get_subscription(user_id)
-            expiry_date = subscription.get('expiry_date', 'неизвестно')
+        logger.info(f"Payment details - Telegram ID: {telegram_payment_charge_id}, Provider ID: {provider_payment_charge_id}")
+        
+        # Process the payment in our system
+        payment_result = self.payment_manager.process_successful_payment(
+            user_id=user_id,
+            payment_id=provider_payment_charge_id,
+            email=email
+        )
+        
+        # Check payment result
+        if payment_result and payment_result.get('success', False):
+            expiry_date = payment_result.get('expiry_date', 'следующий месяц')
             
             await message.reply_text(
                 f"🎉 Поздравляем! Ваш платеж успешно обработан!\n\n"
@@ -1439,8 +1437,11 @@ class BotHandlers:
         if query.data == "update_profile" or query.data == "update_profile_full":
             # Clear existing data and start profile update
             context.user_data.clear()
+            # Initialize profile state and data
+            context.user_data['profile_state'] = 'age'
+            context.user_data['profile_data'] = {}
             await query.message.reply_text(messages.PROFILE_PROMPTS['age'])
-            return AGE
+            return self.PROFILE
         elif query.data == "keep_profile":
             await query.message.reply_text("Хорошо, ваш профиль останется без изменений.")
             return ConversationHandler.END
@@ -1889,8 +1890,6 @@ class BotHandlers:
             CommandHandler("calendar", self.show_calendar),
             CommandHandler("reminder", self.set_reminder),
             CommandHandler("subscription", self.subscription),
-            # Add handler for email collection - just intercept ALL text messages and filter in the handler
-            MessageHandler(filters.TEXT & ~filters.COMMAND, self.collect_email),
             # Add workout feedback handler
             CallbackQueryHandler(
                 self.handle_workout_feedback,
@@ -1919,7 +1918,7 @@ class BotHandlers:
                 CommandHandler('profile', self.start_profile)
             ],
             states={
-                # States are defined as class variables
+                # Use the PROFILE state for all profile-related inputs
                 self.PROFILE: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_profile_input)]
             },
             fallbacks=[CommandHandler('cancel', self.cancel_profile)]
@@ -2157,7 +2156,51 @@ class BotHandlers:
                 )
                 return self.PROFILE
                 
-        # ... other states like sex, goals, fitness_level, equipment would go here
+        elif current_state == 'sex':
+            sex = text
+            if sex not in ['Мужской', 'Женский']:
+                await update.message.reply_text(
+                    "Пожалуйста, выберите пол, используя предоставленные кнопки."
+                )
+                return self.PROFILE
+                
+            profile_data['sex'] = sex
+            
+            # Next, ask for goals
+            await update.message.reply_text(
+                "Выберите ваши фитнес цели:",
+                reply_markup=get_goals_keyboard()
+            )
+            context.user_data['profile_state'] = 'goals'
+            return self.PROFILE
+            
+        elif current_state == 'goals':
+            goals = text
+            profile_data['goals'] = goals
+            
+            # Next, ask for fitness level
+            await update.message.reply_text(
+                "Укажите ваш уровень физической подготовки:",
+                reply_markup=get_fitness_level_keyboard()
+            )
+            context.user_data['profile_state'] = 'fitness_level'
+            return self.PROFILE
+            
+        elif current_state == 'fitness_level':
+            fitness_level = text
+            profile_data['fitness_level'] = fitness_level
+            
+            # Finally, ask for equipment
+            await update.message.reply_text(
+                "Какое оборудование у вас есть доступ для тренировок?",
+                reply_markup=get_equipment_keyboard()
+            )
+            context.user_data['profile_state'] = 'equipment'
+            return self.PROFILE
+            
+        elif current_state == 'equipment':
+            equipment = text
+            profile_data['equipment'] = equipment
                 
         # Save the updated profile data
         context.user_data['profile_data'] = profile_data

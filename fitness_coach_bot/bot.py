@@ -1,7 +1,7 @@
 import sys
 import os
 import signal
-import fcntl
+import platform
 from pathlib import Path
 from dotenv import load_dotenv
 from telegram.error import Conflict, NetworkError, TimedOut
@@ -13,6 +13,13 @@ from fitness_coach_bot.database import Database
 from fitness_coach_bot.workout_manager import WorkoutManager
 from fitness_coach_bot.reminder import ReminderManager
 from fitness_coach_bot.handlers import BotHandlers
+
+# Check platform
+IS_WINDOWS = platform.system() == 'Windows'
+
+# Platform-specific imports
+if not IS_WINDOWS:
+    import fcntl
 
 # Set up logging with more detailed format
 logging.basicConfig(
@@ -48,61 +55,143 @@ else:
     TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 
 application = None  # Global application instance
-PID_FILE = '/tmp/telegram_bot.pid'
-LOCK_FILE = '/tmp/telegram_bot.lock'
+
+# Use platform-specific temp directory for pid files
+if IS_WINDOWS:
+    temp_dir = os.environ.get('TEMP', os.path.join(os.environ.get('USERPROFILE', 'C:'), 'Temp'))
+else:
+    temp_dir = '/tmp'
+
+PID_FILE = os.path.join(temp_dir, 'telegram_bot.pid')
+LOCK_FILE = os.path.join(temp_dir, 'telegram_bot.lock')
 
 # Add context manager for lock file
 class LockManager:
     def __init__(self, lock_file):
         self.lock_file = lock_file
         self.lock_fd = None
+        self.locked = False
 
     def __enter__(self):
-        try:
-            self.lock_fd = os.open(self.lock_file, os.O_CREAT | os.O_RDWR)
-            fcntl.flock(self.lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            return self.lock_fd
-        except (IOError, OSError) as e:
-            logger.error(f"Could not acquire lock: {e}")
-            if self.lock_fd:
-                os.close(self.lock_fd)
-            return None
+        if IS_WINDOWS:
+            try:
+                # Windows lock implementation using fileExists check
+                if os.path.exists(self.lock_file):
+                    # Check if the process is still running
+                    try:
+                        with open(self.lock_file, 'r') as f:
+                            pid = int(f.read().strip())
+                        
+                        # Try to check if process exists (Windows approach)
+                        import ctypes
+                        kernel32 = ctypes.windll.kernel32
+                        handle = kernel32.OpenProcess(1, 0, pid)
+                        if handle:
+                            kernel32.CloseHandle(handle)
+                            logger.error(f"Process with PID {pid} still running")
+                            return None
+                    except (IOError, ValueError, OSError):
+                        # If we can't read the PID or the process doesn't exist
+                        pass
+                
+                # Create new lock file
+                with open(self.lock_file, 'w') as f:
+                    f.write(str(os.getpid()))
+                self.locked = True
+                return True
+            except Exception as e:
+                logger.error(f"Windows lock error: {e}")
+                return None
+        else:
+            # Unix implementation using fcntl
+            try:
+                self.lock_fd = os.open(self.lock_file, os.O_CREAT | os.O_RDWR)
+                fcntl.flock(self.lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                return self.lock_fd
+            except (IOError, OSError) as e:
+                logger.error(f"Could not acquire lock: {e}")
+                if self.lock_fd:
+                    os.close(self.lock_fd)
+                return None
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        if self.lock_fd is not None:
-            try:
-                fcntl.flock(self.lock_fd, fcntl.LOCK_UN)
-                os.close(self.lock_fd)
-                os.unlink(self.lock_file)
-            except (IOError, OSError) as e:
-                logger.error(f"Error releasing lock: {e}")
+        if IS_WINDOWS:
+            if self.locked:
+                try:
+                    if os.path.exists(self.lock_file):
+                        os.remove(self.lock_file)
+                except (IOError, OSError) as e:
+                    logger.error(f"Error releasing Windows lock: {e}")
+        else:
+            if self.lock_fd is not None:
+                try:
+                    fcntl.flock(self.lock_fd, fcntl.LOCK_UN)
+                    os.close(self.lock_fd)
+                    os.unlink(self.lock_file)
+                except (IOError, OSError) as e:
+                    logger.error(f"Error releasing lock: {e}")
 
 def acquire_lock():
     """Try to acquire the lock file"""
-    try:
-        lock_fd = os.open(LOCK_FILE, os.O_CREAT | os.O_RDWR)
-        fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        return lock_fd
-    except (IOError, OSError) as e:
-        logger.error(f"Could not acquire lock: {e}")
-        return None
+    if IS_WINDOWS:
+        try:
+            # Windows implementation
+            if os.path.exists(LOCK_FILE):
+                return None
+            with open(LOCK_FILE, 'w') as f:
+                f.write(str(os.getpid()))
+            return True
+        except (IOError, OSError) as e:
+            logger.error(f"Could not acquire Windows lock: {e}")
+            return None
+    else:
+        # Unix implementation
+        try:
+            lock_fd = os.open(LOCK_FILE, os.O_CREAT | os.O_RDWR)
+            fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            return lock_fd
+        except (IOError, OSError) as e:
+            logger.error(f"Could not acquire lock: {e}")
+            return None
 
 def release_lock(lock_fd):
     """Release the lock file"""
-    if lock_fd is not None:
-        try:
-            fcntl.flock(lock_fd, fcntl.LOCK_UN)
-            os.close(lock_fd)
-            os.unlink(LOCK_FILE)
-        except (IOError, OSError) as e:
-            logger.error(f"Error releasing lock: {e}")
+    if IS_WINDOWS:
+        if os.path.exists(LOCK_FILE):
+            try:
+                os.remove(LOCK_FILE)
+            except (IOError, OSError) as e:
+                logger.error(f"Error releasing Windows lock: {e}")
+    else:
+        if lock_fd is not None:
+            try:
+                fcntl.flock(lock_fd, fcntl.LOCK_UN)
+                os.close(lock_fd)
+                os.unlink(LOCK_FILE)
+            except (IOError, OSError) as e:
+                logger.error(f"Error releasing lock: {e}")
 
 def signal_handler(signum, frame):
     """Handle shutdown signals"""
     logger.info(f"Received shutdown signal {signum}, cleaning up...")
     if application:
         try:
-            application.stop()
+            # Properly handle async stop
+            import asyncio
+            try:
+                # Get or create event loop
+                try:
+                    loop = asyncio.get_event_loop()
+                    if loop.is_closed():
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+                    # Run the coroutine to stop the application
+                    loop.run_until_complete(application.stop())
+                except Exception:
+                    # Fallback
+                    asyncio.run(application.stop())
+            except Exception as e:
+                logger.error(f"Error in async handling: {e}")
             logger.info("Application stopped successfully")
         except Exception as e:
             logger.error(f"Error stopping application: {e}")
@@ -141,32 +230,53 @@ def cleanup_old_instances():
                 try:
                     with open(PID_FILE, 'r') as f:
                         old_pid = int(f.read().strip())
-                    try:
-                        # Check if process exists
-                        os.kill(old_pid, 0)
-                        # If we get here, process exists
-                        logger.info(f"Found running instance with PID {old_pid}")
-                        os.kill(old_pid, signal.SIGTERM)
-                        logger.info(f"Sent SIGTERM to old instance with PID {old_pid}")
-                        # Wait for process to terminate
-                        for _ in range(5):  # Wait up to 5 seconds
-                            time.sleep(1)
-                            try:
-                                os.kill(old_pid, 0)
-                            except ProcessLookupError:
-                                logger.info("Old instance terminated successfully")
-                                break
-                        else:
-                            # If process still exists after timeout, force kill
-                            try:
-                                os.kill(old_pid, signal.SIGKILL)
-                                logger.info(f"Force killed old instance with PID {old_pid}")
-                            except ProcessLookupError:
-                                pass
-                    except ProcessLookupError:
-                        logger.info(f"No process found with PID {old_pid}")
-                    except Exception as e:
-                        logger.error(f"Error killing old process: {e}")
+                    
+                    # Platform-specific process checking
+                    if IS_WINDOWS:
+                        try:
+                            # Windows approach to check if process exists
+                            import ctypes
+                            kernel32 = ctypes.windll.kernel32
+                            handle = kernel32.OpenProcess(1, 0, old_pid)
+                            process_exists = handle != 0
+                            if handle:
+                                kernel32.CloseHandle(handle)
+                                
+                            if process_exists:
+                                # Windows approach to terminate process
+                                logger.info(f"Found running instance with PID {old_pid}")
+                                os.system(f"taskkill /PID {old_pid} /F")
+                                logger.info(f"Sent termination signal to old instance with PID {old_pid}")
+                        except Exception as e:
+                            logger.error(f"Error checking/killing Windows process: {e}")
+                    else:
+                        # Unix approach
+                        try:
+                            # Check if process exists
+                            os.kill(old_pid, 0)
+                            # If we get here, process exists
+                            logger.info(f"Found running instance with PID {old_pid}")
+                            os.kill(old_pid, signal.SIGTERM)
+                            logger.info(f"Sent SIGTERM to old instance with PID {old_pid}")
+                            # Wait for process to terminate
+                            for _ in range(5):  # Wait up to 5 seconds
+                                time.sleep(1)
+                                try:
+                                    os.kill(old_pid, 0)
+                                except ProcessLookupError:
+                                    logger.info("Old instance terminated successfully")
+                                    break
+                            else:
+                                # If process still exists after timeout, force kill
+                                try:
+                                    os.kill(old_pid, signal.SIGKILL)
+                                    logger.info(f"Force killed old instance with PID {old_pid}")
+                                except ProcessLookupError:
+                                    pass
+                        except ProcessLookupError:
+                            logger.info(f"No process found with PID {old_pid}")
+                        except Exception as e:
+                            logger.error(f"Error killing old process: {e}")
                 except Exception as e:
                     logger.error(f"Error reading PID file: {e}")
 
@@ -225,7 +335,10 @@ def main():
         # Set up signal handlers for graceful shutdown
         signal.signal(signal.SIGINT, signal_handler)
         signal.signal(signal.SIGTERM, signal_handler)
-        signal.signal(signal.SIGHUP, signal_handler)  # Handle terminal window close
+        
+        # SIGHUP is not available on Windows
+        if not IS_WINDOWS:
+            signal.signal(signal.SIGHUP, signal_handler)  # Handle terminal window close
 
         logger.info("Initializing bot components...")
 
@@ -235,8 +348,11 @@ def main():
         workout_manager = WorkoutManager(database=database)
         logger.info("Workout manager initialized")
 
+        # Platform-specific persistence path
+        persistence_path = os.path.join(temp_dir, 'telegram_bot_persistence')
+        
         # Create application with proper configuration
-        persistence = PicklePersistence(filepath='/tmp/telegram_bot_persistence')
+        persistence = PicklePersistence(filepath=persistence_path)
         application = (
             ApplicationBuilder()
             .token(TOKEN)
@@ -269,13 +385,19 @@ def main():
         # Set up commands
         application.job_queue.run_once(setup_commands, when=0)
 
+        # Define platform-specific stop signals
+        if IS_WINDOWS:
+            stop_signals = (signal.SIGINT, signal.SIGTERM)
+        else:
+            stop_signals = (signal.SIGINT, signal.SIGTERM, signal.SIGHUP)
+
         # Start the bot with more robust configuration
         logger.info("Starting bot...")
         application.run_polling(
             allowed_updates=["message", "callback_query"],
             drop_pending_updates=True,
             close_loop=False,
-            stop_signals=(signal.SIGINT, signal.SIGTERM, signal.SIGHUP)
+            stop_signals=stop_signals
         )
 
     except Conflict as e:
@@ -289,7 +411,19 @@ def main():
         # Cleanup on error
         if application:
             try:
-                application.stop()
+                # Fix the unawaited coroutine warning by handling stop properly
+                import asyncio
+                try:
+                    # Create a new event loop if needed
+                    loop = asyncio.get_event_loop()
+                    if loop.is_closed():
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+                    # Run the stop coroutine
+                    loop.run_until_complete(application.stop())
+                except Exception:
+                    # Fallback for simpler environments
+                    asyncio.run(application.stop())
             except Exception as stop_error:
                 logger.error(f"Error stopping application: {stop_error}")
         cleanup_files()

@@ -355,16 +355,35 @@ class Database:
             logger.error(f"Error saving progress to file: {str(e)}", exc_info=True)
 
     def get_user_progress(self, user_id):
-        """Get user's workout progress"""
-        user_id = str(user_id)
+        """Get user progress data"""
         if self.use_dynamo:
-            response = self.progress_table.query(
-                KeyConditionExpression=Key('user_id').eq(user_id)
-            )
-            return response.get('Items', [])
+            try:
+                response = self.progress_table.query(
+                    KeyConditionExpression=Key('user_id').eq(str(user_id))
+                )
+                if response['Items']:
+                    return response['Items']
+                return []
+            except Exception as e:
+                logger.error(f"DynamoDB error getting user progress: {e}")
+                return []
         else:
+            # File-based storage
             progress = self._read_json(self.progress_file)
-            return progress.get(user_id, [])
+            return progress.get(str(user_id), [])
+
+    def get_user_workouts(self, user_id, limit=None):
+        """Get user workout history with optional limit"""
+        workouts = self.get_user_progress(user_id)
+        
+        # Sort workouts by date (newest first)
+        workouts = sorted(workouts, key=lambda x: x.get('date', ''), reverse=True)
+        
+        # Apply limit if provided
+        if limit and isinstance(limit, int) and limit > 0:
+            workouts = workouts[:limit]
+            
+        return workouts
 
     def get_workout_streak(self, user_id):
         """Calculate current and longest workout streaks"""

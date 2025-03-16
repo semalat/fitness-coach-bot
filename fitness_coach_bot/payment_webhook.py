@@ -8,12 +8,35 @@ from fitness_coach_bot.database import Database
 from fitness_coach_bot.payment_manager import PaymentManager
 import uuid
 import json
+import dotenv
+from pathlib import Path
 
 app = Flask(__name__)
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Load environment variables from .env file
+env_paths = [
+    '.env',                                # Current directory
+    'fitness_coach_bot/.env',              # Subdirectory
+    '../.env',                             # Parent directory
+    str(Path(__file__).parent.parent / '.env'),  # Relative to current file
+    # Keep test paths as fallback
+    '.env.test',                           # Current directory
+    'fitness_coach_bot/.env.test',         # Subdirectory
+    '../.env.test',                        # Parent directory
+    str(Path(__file__).parent.parent / '.env.test')  # Relative to current file
+]
+
+for env_path in env_paths:
+    if os.path.exists(env_path):
+        dotenv.load_dotenv(env_path)
+        logger.info(f"Loaded environment variables from {env_path}")
+        break
+else:
+    logger.warning("Could not find .env or .env.test file, using default credentials")
 
 # Инициализация базы данных и менеджера платежей
 database = Database()

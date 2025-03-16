@@ -9,9 +9,14 @@ from pathlib import Path
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Загрузка переменных окружения из .env.test файла
-# Поиск .env.test файла в нескольких местах
+# Загрузка переменных окружения из .env файла
+# Поиск .env файла в нескольких местах
 env_paths = [
+    '.env',                                # Текущая директория
+    'fitness_coach_bot/.env',              # Поддиректория
+    '../.env',                             # Родительская директория
+    str(Path(__file__).parent.parent / '.env'),  # Относительно текущего файла
+    # Keep test paths as fallback
     '.env.test',                                # Текущая директория
     'fitness_coach_bot/.env.test',              # Поддиректория
     '../.env.test',                             # Родительская директория
@@ -24,7 +29,7 @@ for env_path in env_paths:
         logger.info(f"Loaded environment variables from {env_path}")
         break
 else:
-    logger.warning("Could not find .env.test file, using default credentials")
+    logger.warning("Could not find .env or .env.test file, using default credentials")
 
 # Пытаемся импортировать YooKassa, но не останавливаем выполнение, если модуль не найден
 try:
@@ -52,6 +57,12 @@ class PaymentManager:
         self.bot_username = bot_username or os.getenv('TELEGRAM_BOT_USERNAME', 'your_bot_username')
         self.payment_enabled = False
         self.telegram_payment_enabled = False
+        
+        # Define subscription plans early (always define regardless of payment system status)
+        self.plans = {
+            "monthly": {"name": "Месячная подписка", "price": 299, "days": 30},
+            "yearly": {"name": "Годовая подписка", "price": 999, "days": 365},
+        }
         
         # Log environment variables for debugging
         logger.info(f"Available environment variables: {list(os.environ.keys())}")
@@ -148,12 +159,6 @@ class PaymentManager:
             logger.error(f"Error initializing YooKassa: {str(e)}", exc_info=True)
             self.payment_enabled = False
             logger.warning("Платежные функции отключены из-за ошибки инициализации")
-        
-        # Определение тарифных планов
-        self.plans = {
-            "monthly": {"name": "Месячная подписка", "price": 299, "days": 30},
-            "yearly": {"name": "Годовая подписка", "price": 999, "days": 365},
-        }
     
     def is_enabled(self):
         """Проверить, включена ли платежная система"""

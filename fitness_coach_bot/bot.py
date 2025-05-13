@@ -13,6 +13,7 @@ from fitness_coach_bot.database import Database
 from fitness_coach_bot.workout_manager import WorkoutManager
 from fitness_coach_bot.reminder import ReminderManager
 from fitness_coach_bot.handlers import BotHandlers
+from fitness_coach_bot.payment_webhook import start_webhook_server
 
 # Check platform
 IS_WINDOWS = platform.system() == 'Windows'
@@ -318,118 +319,71 @@ async def error_handler(update, context):
         logger.error("Unknown error occurred", exc_info=context.error)
 
 def main():
-    """Initialize and start the bot"""
+    """Main function to start the bot"""
     global application
-
-    # Check environment variables were loaded
-    if not TOKEN:
-        logger.error("Error: Telegram Bot Token not found. Please set the TELEGRAM_BOT_TOKEN environment variable.")
-        return 1
-
-    try:
-        # Clean up old instances first
-        if not cleanup_old_instances():
-            logger.error("Could not clean up old instances. Exiting.")
-            return 1
-
-        # Set up signal handlers for graceful shutdown
+    
+    try:        
+        # Ensure we have a valid token
+        if not TOKEN:
+            logger.error("No Telegram Bot Token provided in environment variables")
+            return False
+            
+        logger.info("Starting bot...")
+        
+        # Clean up old instances
+        cleanup_old_instances()
+        
+        # Write PID file
+        with open(PID_FILE, 'w') as f:
+            f.write(str(os.getpid()))
+            
+        # Setup signal handlers
         signal.signal(signal.SIGINT, signal_handler)
         signal.signal(signal.SIGTERM, signal_handler)
-        
-        # SIGHUP is not available on Windows
-        if not IS_WINDOWS:
-            signal.signal(signal.SIGHUP, signal_handler)  # Handle terminal window close
-
-        logger.info("Initializing bot components...")
-
+            
+        # Initialize bot services
         database = Database()
-        logger.info("Database initialized")
-
-        workout_manager = WorkoutManager(database=database)
-        logger.info("Workout manager initialized")
-
-        # Platform-specific persistence path
-        persistence_path = os.path.join(temp_dir, 'telegram_bot_persistence')
+        workout_manager = WorkoutManager(database)
+        reminder_manager = ReminderManager(database)
         
-        # Create application with proper configuration
+        # Set up persistence
+        persistence_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'bot_persistence')
         persistence = PicklePersistence(filepath=persistence_path)
-        application = (
-            ApplicationBuilder()
-            .token(TOKEN)
-            .concurrent_updates(False)  # Disable concurrent updates to prevent conflicts
-            .connect_timeout(30)  # Increase timeout
-            .read_timeout(30)
-            .write_timeout(30)
-            .pool_timeout(30)
-            .persistence(persistence)  # Enable persistence which automatically enables job queue
-            .build()
-        )
-        logger.info("Application builder initialized")
-
-        # Add error handler
+        
+        # Initialize application with persistent data
+        application_builder = ApplicationBuilder()
+        application_builder.token(TOKEN)
+        application_builder.persistence(persistence)
+        application = application_builder.build()
+        
+        # Set up error handler
         application.add_error_handler(error_handler)
-        logger.info("Error handler added")
-
-        # Initialize reminder manager with bot instance
-        reminder_manager = ReminderManager(application.bot, database)
-        logger.info("Reminder manager initialized")
-
+        
+        # Register commands with BotFather
+        application.post_init = setup_commands
+        
         # Initialize handlers
         handlers = BotHandlers(database, workout_manager, reminder_manager)
-        logger.info("Bot handlers initialized")
 
-        # Add handlers to application
-        handlers.register_handlers(application)
-        logger.info("All handlers added to application")
-
-        # Set up commands
-        application.job_queue.run_once(setup_commands, when=0)
-
-        # Define platform-specific stop signals
-        if IS_WINDOWS:
-            stop_signals = (signal.SIGINT, signal.SIGTERM)
+        # Start payment webhook server if environment variables are configured
+        webhook_port = int(os.getenv('WEBHOOK_PORT', 5000))
+        public_webhook_url = os.getenv('PUBLIC_WEBHOOK_URL')
+        
+        if public_webhook_url:
+            logger.info(f"Starting YooMoney payment webhook server on port {webhook_port}")
+            start_webhook_server(port=webhook_port, public_url=public_webhook_url)
+            logger.info(f"YooMoney payment webhook registered at {public_webhook_url}/webhook/payment")
         else:
-            stop_signals = (signal.SIGINT, signal.SIGTERM, signal.SIGHUP)
-
-        # Start the bot with more robust configuration
-        logger.info("Starting bot...")
-        application.run_polling(
-            allowed_updates=["message", "callback_query"],
-            drop_pending_updates=True,
-            close_loop=False,
-            stop_signals=stop_signals
-        )
-
-    except Conflict as e:
-        logger.error(f"Bot instance conflict: {e}")
-        cleanup_files()
-        logger.info("Exiting due to conflict...")
-        return 1  # Return error code instead of sys.exit
-
+            logger.warning("PUBLIC_WEBHOOK_URL not set, YooMoney payment webhook server not started")
+        
+        # Start the bot
+        application.run_polling()
+        return True
+        
     except Exception as e:
-        logger.error(f"Error starting bot: {e}", exc_info=True)
-        # Cleanup on error
-        if application:
-            try:
-                # Fix the unawaited coroutine warning by handling stop properly
-                import asyncio
-                try:
-                    # Create a new event loop if needed
-                    loop = asyncio.get_event_loop()
-                    if loop.is_closed():
-                        loop = asyncio.new_event_loop()
-                        asyncio.set_event_loop(loop)
-                    # Run the stop coroutine
-                    loop.run_until_complete(application.stop())
-                except Exception:
-                    # Fallback for simpler environments
-                    asyncio.run(application.stop())
-            except Exception as stop_error:
-                logger.error(f"Error stopping application: {stop_error}")
+        logger.error(f"Error in main function: {e}", exc_info=True)
         cleanup_files()
-        return 1  # Return error code instead of sys.exit
-
-    return 0  # Return success code
+        return False
 
 if __name__ == "__main__":
     sys.exit(main())  # Only call sys.exit when running as a script

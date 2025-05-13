@@ -10,12 +10,21 @@ import uuid
 import json
 import dotenv
 from pathlib import Path
+import requests
+import threading
+import time
 
 app = Flask(__name__)
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Add a simple root route for health checks
+@app.route('/', methods=['GET'])
+def health_check():
+    """Simple health check endpoint to verify the server is running"""
+    return jsonify({"status": "ok", "service": "payment_webhook"}), 200
 
 # Load environment variables from .env file
 env_paths = [
@@ -41,6 +50,9 @@ else:
 # Инициализация базы данных и менеджера платежей
 database = Database()
 payment_manager = PaymentManager(database)
+
+# Флаг, показывающий, запущен ли веб-сервер
+webhook_server_running = False
 
 @app.route('/webhook/payment', methods=['POST'])
 def payment_webhook():
@@ -163,8 +175,126 @@ def verify_signature(body, signature, secret_key):
         logger.error(f"Ошибка при проверке подписи: {str(e)}")
         return False
 
+def register_webhook_with_yoomoney(webhook_url):
+    """
+    Регистрирует URL вебхука в YooMoney API
+    
+    Args:
+        webhook_url (str): Полный URL вебхука для регистрации
+        
+    Returns:
+        bool: True в случае успешной регистрации, иначе False
+    """
+    shop_id = os.getenv('YOOMONEY_SHOP_ID')
+    api_key = os.getenv('YOOMONEY_API_KEY')
+    
+    if not shop_id or not api_key:
+        logger.error("Отсутствуют учетные данные YooMoney для регистрации вебхука")
+        return False
+    
+    # URL API для регистрации вебхуков
+    api_url = "https://api.yookassa.ru/v3/webhooks"
+    
+    # Данные для запроса
+    webhook_data = {
+        "event": "payment.succeeded",
+        "url": webhook_url
+    }
+    
+    headers = {
+        "Content-Type": "application/json",
+        "Idempotence-Key": str(uuid.uuid4())
+    }
+    
+    # Аутентификация Basic Auth (shop_id:API key)
+    auth = (shop_id, api_key)
+    
+    try:
+        # Сначала получаем список текущих вебхуков
+        response = requests.get(api_url, auth=auth, headers=headers)
+        
+        if response.status_code == 200:
+            current_webhooks = response.json().get('items', [])
+            
+            # Проверяем, существует ли уже такой вебхук
+            for webhook in current_webhooks:
+                if webhook.get('url') == webhook_url and webhook.get('event') == "payment.succeeded":
+                    logger.info(f"Вебхук уже зарегистрирован: {webhook_url}")
+                    return True
+        
+        # Регистрируем новый вебхук
+        response = requests.post(
+            api_url,
+            json=webhook_data,
+            auth=auth,
+            headers=headers
+        )
+        
+        if response.status_code in (200, 201):
+            logger.info(f"Вебхук успешно зарегистрирован: {webhook_url}")
+            return True
+        else:
+            logger.error(f"Ошибка регистрации вебхука: {response.status_code}, {response.text}")
+            return False
+            
+    except Exception as e:
+        logger.error(f"Ошибка при регистрации вебхука: {str(e)}")
+        return False
+
+def start_webhook_server(host='0.0.0.0', port=5000, public_url=None):
+    """
+    Запускает сервер вебхуков в отдельном потоке
+    
+    Args:
+        host (str): Хост для запуска сервера (по умолчанию 0.0.0.0)
+        port (int): Порт для запуска сервера (по умолчанию 5000)
+        public_url (str): Публичный URL для регистрации вебхука (если None, регистрация не выполняется)
+    
+    Returns:
+        threading.Thread: Объект потока с запущенным сервером
+    """
+    global webhook_server_running
+    
+    if webhook_server_running:
+        logger.info("Сервер вебхуков уже запущен")
+        return None
+    
+    # Настраиваем порт из переменной окружения, если указана
+    port = int(os.getenv('WEBHOOK_PORT', port))
+    
+    # Если указан публичный URL, регистрируем вебхук в YooMoney
+    if public_url:
+        webhook_url = f"{public_url.rstrip('/')}/webhook/payment"
+        success = register_webhook_with_yoomoney(webhook_url)
+        if success:
+            logger.info(f"Вебхук успешно зарегистрирован: {webhook_url}")
+        else:
+            logger.warning(f"Не удалось зарегистрировать вебхук: {webhook_url}")
+    
+    def run_server():
+        global webhook_server_running  # Need to declare global inside the function too
+        logger.info(f"Запуск сервера вебхуков на {host}:{port}")
+        webhook_server_running = True
+        app.run(host=host, port=port, debug=False, use_reloader=False)
+    
+    # Запуск сервера в отдельном потоке
+    server_thread = threading.Thread(target=run_server, daemon=True)
+    server_thread.start()
+    
+    # Wait a moment to ensure the server has started
+    time.sleep(1)
+    
+    logger.info(f"Сервер вебхуков запущен в отдельном потоке на порту {port}")
+    return server_thread
+
 if __name__ == '__main__':
     # Запуск сервера вебхуков
-    port = int(os.getenv('PORT', 5000))
+    port = int(os.getenv('WEBHOOK_PORT', 5000))
+    public_url = os.getenv('PUBLIC_WEBHOOK_URL')
+    
+    if public_url:
+        logger.info(f"Регистрация вебхука: {public_url}/webhook/payment")
+        register_webhook_with_yoomoney(f"{public_url.rstrip('/')}/webhook/payment")
+    
     app.run(host='0.0.0.0', port=port, debug=False)
     logger.info(f"Сервер вебхуков запущен на порту {port}") 

@@ -107,10 +107,11 @@ class PaymentManager:
             except Exception as e:
                 logger.error(f"Error reading TELEGRAM_PROVIDER_TOKEN from file: {str(e)}")
         
-        # If still not found, set it manually for testing
+        # If still not found, set it to Telegram's TEST provider token
         if not self.provider_token:
-            logger.info("Provider token not found in environment or .env.test, using hardcoded test token")
-            self.provider_token = "381764678:TEST:116079"
+            logger.info("Provider token not found in environment or .env.test, using default TEST provider token")
+            # This is Telegram's official test provider token
+            self.provider_token = "381764678:TEST:54143"
             
         logger.info(f"Final TELEGRAM_PROVIDER_TOKEN: {self.provider_token}")
         
@@ -118,6 +119,9 @@ class PaymentManager:
         if self.provider_token:
             self.telegram_payment_enabled = True
             logger.info("Платежи через Telegram включены")
+            # Test if this is a test provider token
+            if "TEST:" in self.provider_token:
+                logger.info("Using TEST provider token - test mode payments are enabled")
         else:
             logger.warning("Токен провайдера Telegram не найден, платежи через Telegram отключены")
         
@@ -185,12 +189,28 @@ class PaymentManager:
             
         selected_plan = self.plans[plan_type]
         
-        # Создаем уникальный payload для идентификации платежа
-        payment_payload = f"subscription_{plan_type}_{user_id}_{int(datetime.now().timestamp())}"
+        # Determine if we're in test mode by checking the provider token
+        is_test_mode = "TEST:" in self.provider_token
         
-        # Logging the payload for debugging
+        # Create a simplified payload for identification
+        payment_payload = f"subscription_{plan_type}_{user_id}_{int(datetime.now().timestamp())}"
         logger.info(f"Created payment payload: {payment_payload}")
         
+        if is_test_mode:
+            logger.info("Using simplified payment data for test mode")
+            # IMPORTANT: Use minimum valid amount for Telegram test payments - 100 RUB (10000 kopecks)
+            # The minimum amount depends on the currency, for RUB it should be at least 100
+            return {
+                "provider_token": self.provider_token,
+                "title": "Test Payment",
+                "description": "Test Payment for Subscription",
+                "payload": payment_payload,
+                "currency": "RUB",
+                "prices": [{"label": "Test", "amount": 10000}],  # 100 RUB in kopecks
+                "start_parameter": "test_payment"
+            }
+            
+        # Regular production mode - provide complete payment details
         # Сохраняем email в данных пользователя, если он предоставлен
         # Этот email будет использован при обработке успешного платежа
         if email:

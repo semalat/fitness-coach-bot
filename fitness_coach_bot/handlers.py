@@ -1341,40 +1341,37 @@ class BotHandlers:
                 )
 
     async def pre_checkout_query_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle pre-checkout queries from Telegram Payment"""
+        """Handle pre-checkout queries from Telegram Payment - simplified for test mode"""
         query = update.pre_checkout_query
         
-        # Extract payment info from payload
-        payload = query.invoice_payload
-        logger.info(f"Received pre-checkout query with payload: {payload}")
+        # Extensive logging for debugging
+        logger.info(f"Received pre-checkout query with ID: {query.id}")
+        logger.info(f"Invoice payload: {query.invoice_payload}")
+        logger.info(f"Shipping option ID: {query.shipping_option_id}")
+        logger.info(f"Order info: {query.order_info}")
         
-        # Respond immediately to prevent timeout - pre-checkout queries must be answered quickly
+        # IMPORTANT: Answer the pre-checkout query immediately to avoid timeout
+        # In production code, you would do validation here
         try:
-            # Always approve the pre-checkout query for now
+            # Always approve immediately in test mode
+            logger.info(f"Approving pre-checkout query {query.id}")
             await context.bot.answer_pre_checkout_query(
                 pre_checkout_query_id=query.id,
                 ok=True
             )
-            logger.info(f"Pre-checkout query {query.id} approved")
-            
-            # Additional processing can happen after responding to the query
-            # This part won't block the response to Telegram
-            if payload:
-                # Store the payload in context for use in successful_payment_handler
-                if 'payment_payloads' not in context.bot_data:
-                    context.bot_data['payment_payloads'] = {}
-                context.bot_data['payment_payloads'][query.id] = payload
+            logger.info(f"Pre-checkout query {query.id} approved successfully")
         except Exception as e:
-            logger.error(f"Error answering pre-checkout query: {str(e)}")
-            # Try to reject the query with an error message - but may be too late if exception occurred
+            logger.error(f"ERROR approving pre-checkout query: {str(e)}", exc_info=True)
+            # Try again once more if there was an error
             try:
+                logger.info(f"Retrying approval for pre-checkout query {query.id}")
                 await context.bot.answer_pre_checkout_query(
                     pre_checkout_query_id=query.id,
-                    ok=False,
-                    error_message="Произошла ошибка при обработке платежа. Пожалуйста, попробуйте позже."
+                    ok=True
                 )
-            except Exception as inner_e:
-                logger.error(f"Error rejecting pre-checkout query: {str(inner_e)}")
+                logger.info(f"Pre-checkout query {query.id} approved on second attempt")
+            except Exception as retry_e:
+                logger.error(f"CRITICAL: Failed to approve pre-checkout query on retry: {str(retry_e)}", exc_info=True)
     
     async def successful_payment_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle successful Telegram payments"""
@@ -1407,8 +1404,8 @@ class BotHandlers:
             
             # Check payment result
             if payment_result:
-                # Retrieve subscription details
-                subscription = self.database.get_subscription(user_id)
+                # Retrieve subscription details - Fixed: changed self.database to self.db
+                subscription = self.db.get_subscription(user_id)
                 expiry_date = subscription.get('expiry_date', 'следующий месяц') if subscription else 'следующий месяц'
                 
                 await message.reply_text(
